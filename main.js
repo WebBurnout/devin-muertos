@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=4';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=5';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -12,11 +12,11 @@ const CONFIG = {
   // patterns = weighted obstacle patterns used by the random row spawner.
   zones: [
     { name: 'EMBARCADERO', sub: 'NATIVITAS, 1 DE NOVIEMBRE', dur: 30, rowEvery: 2.4,
-      patterns: { traj: 5, traj2: 2, llorona: 1.5, lirio: 1, banner: 1, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 2, llorona: 1.5, lirio: 1, picado: 0.8, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
-      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1.5 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, picado: 1 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, banner: 1.5, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, picado: 1, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
       patterns: { traj: 4, traj2: 2, llorona: 7, llorona2: 4, llorona3: 2, vendor: 1, lirio: 1, empty: 0.2 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
     { name: 'MICTLÁN', sub: 'EL MÁS ALLÁ TE ESPERA', dur: 30, rowEvery: 0,
@@ -600,7 +600,9 @@ function spawnRow(kind) {
   const near = blockersNear(z);
   free = free.filter((l) => !near.lanes.has(l));
   const canBlock = (n) => near.lanes.size + n <= (near.movers ? 1 : 2);
-  if (['traj', 'banner', 'mariachi', 'lirio'].includes(kind) && (!free.length || (kind !== 'lirio' && !canBlock(1)))) kind = 'empty';
+  if (['traj', 'mariachi', 'lirio'].includes(kind) && (!free.length || (kind !== 'lirio' && !canBlock(1)))) kind = 'empty';
+  // Papel picado spans the canal (you duck under it), so it only goes where nothing else is near.
+  if (kind === 'picado' && (near.lanes.size || near.movers)) kind = 'empty';
   if (kind === 'traj2' && !canBlock(2)) kind = canBlock(1) && free.length ? 'traj' : 'empty';
   if ((kind.startsWith('llorona') || kind === 'vendor') && near.lanes.size + near.movers > 1) kind = canBlock(1) && free.length ? 'traj' : 'empty';
 
@@ -631,7 +633,7 @@ function spawnRow(kind) {
       if (Math.random() < 0.5) for (let i = 0; i < 3; i++) spawnSoul(laneX(l), z - 0.5 - i * 1.3, true);
       break;
     }
-    case 'banner': { const l = take(pick(free)); spawn('duck', 'banner', laneX(l), z, { hw: 1.1 * CONFIG.hitboxScale + 0.3, hd: 0.35 }); break; }
+    case 'picado': spawn('duck', 'picado', 0, z, { hw: 99, hd: 0.35 }); soulsOK = false; break;
     case 'llorona': spawnLlorona(pick([-1, 1]), 2); break;
     case 'llorona2': spawnLlorona(-1, 2); spawnLlorona(1, 3.2); break;
     case 'llorona3': { const sd = pick([-1, 1]); spawnLlorona(sd, 1.5); spawnLlorona(-sd, 2.6); spawnLlorona(sd, 3.7); break; }
@@ -643,7 +645,7 @@ function spawnRow(kind) {
       for (const l of [0, 1, 2]) spawn('lirio', 'lirio', laneX(l), z, { hw: 0.9, hd: 0.8 });
       free = []; hint = 'lirio'; break;
     }
-    case 'tut-duck': { const l = take(G.lane); spawn('duck', 'banner', laneX(l), z, { hw: 1.1 * CONFIG.hitboxScale + 0.3, hd: 0.35 }); hint = 'duck'; soulsOK = false; break; }
+    case 'tut-duck': spawn('duck', 'picado', 0, z, { hw: 99, hd: 0.35 }); hint = 'duck'; soulsOK = false; break;
     case 'tut-candle': free = []; spawnCandle(0, z); spawnCandle(1, z); spawnCandle(2, z); hint = 'candle'; break;
     default: break; // 'empty'
   }
@@ -1369,4 +1371,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // Debug handle for tweaking CONFIG live from the console.
-window.XDM = { CONFIG, G, skipToZone, computeZoneTimes, spawnCandle };
+window.XDM = { CONFIG, G, skipToZone, computeZoneTimes, spawnCandle, spawnRow };

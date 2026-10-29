@@ -60,7 +60,7 @@
     <li><b>Souls are your score.</b> Each soul you touch joins the glowing trail behind your canoa. Souls floating up high need a jump.</li>
     <li><b>Getting hit scatters half your trail.</b> The scattered souls fly off and land back in the lanes, so you can win them back. You're then invulnerable for 1.5 seconds and flicker.</li>
     <li><b>Your candle is your light.</b> It burns down over about 45 seconds, and the fog closes in as it dims. Each candle you pick up refills half of it, and a candle shows up at least every 9 seconds. Candles glow straight through the fog, so you can always spot one, even in the dark.</li>
-    <li><b>There's always a way through.</b> No row of obstacles ever blocks all three lanes at once.</li>
+    <li><b>There's always a way through.</b> No row of obstacles ever blocks all three lanes at once. The only exception is papel picado strung across the canal, and you just duck under that.</li>
     <li><b>Speed rises gently</b> over the run, and the sky moves from purple midnight toward an orange dawn.</li>
     <li><b>The finale:</b> in the last zone the gates of Mictlán rise out of the water. Your souls cross through the portal one by one (<i>CRUZARON</i>) and you get the win screen.
       Points = souls delivered × 10 + petals.</li>
@@ -101,7 +101,7 @@
   <a class="play" href="./">▶ PLAY</a>
 </main>
 <script type="module">
-  import { SPRITES, gridToCanvas } from './sprites.js?v=4';
+  import { SPRITES, gridToCanvas } from './sprites.js?v=5';
   const PICKUPS = [
     ['soul', 'Lost soul', 'good', 'Joins your trail. Low ones float on the water; high ones need a jump.'],
     ['candle', 'Candle', 'good', 'Refills half of your light and pushes the fog back. It glows through the darkness, so you can always find one.'],
@@ -115,7 +115,7 @@
     ['vendorL', 'Vendor canoe', 'bad', 'Food sellers paddling sideways across the canal. Watch their path.'],
     ['llorona', 'La Llorona', 'bad', 'Her wail warns you 2 seconds before she glides diagonally across the lanes, sometimes two or three at once. The Lloronas on the banks and in the sky are harmless.'],
     ['lirio', 'Lirios (water hyacinth)', 'safe', 'They don\'t hurt you, but they slow you to about half speed for a second. Jump over them.'],
-    ['banner', 'Papel picado', 'bad', 'Strung low across a lane. Duck under it.'],
+    ['picado', 'Papel picado', 'bad', 'Strung low across the whole canal, bank to bank. Duck under it.'],
   ];
   const TAGS = { good: 'PICKUP', bad: 'AVOID', safe: 'SLOWS' };
   function fill(id, list) {

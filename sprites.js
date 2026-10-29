@@ -1,5 +1,5 @@
 // sprites.js — every sprite in the game is a string grid with a 1-char palette key.
-// Small sprites are written by hand; large ones (boats, bridge, Mictlán gate) are composed
+// Small sprites are written by hand; large ones (boats, papel picado, Mictlán gate) are composed
 // into the same kind of grid with tiny drawing helpers so they stay editable.
 
 // ---------------------------------------------------------------------------
@@ -547,30 +547,6 @@ function lirio(seed) {
 // ---------------------------------------------------------------------------
 // Duck obstacles
 // ---------------------------------------------------------------------------
-function bridge() {
-  const W = 240, H = 60, g = new Grid(W, H);
-  // Bank supports.
-  g.rect(0, 14, 14, 46, 'd').rect(W - 14, 14, 14, 46, 'd');
-  for (const x of [3, 9, W - 11, W - 5]) g.rect(x, 16, 1, 44, 'w');
-  // Railing.
-  g.rect(0, 14, W, 2, 'w').rect(0, 16, W, 1, 'd');
-  for (let x = 0; x < W; x += 16) g.rect(x, 14, 2, 10, 'd');
-  for (let x = 8; x < W; x += 32) { g.set(x, 11, 'y').set(x, 12, 'O').rect(x, 13, 1, 1, 'b'); }
-  // Deck planks.
-  g.rect(0, 24, W, 8, 'w');
-  for (let x = 0; x < W; x += 6) g.rect(x, 24, 1, 8, 'd');
-  g.rect(0, 24, W, 1, 'O');
-  g.rect(0, 31, W, 2, 'd');
-  // Marigold garland swags hanging under the deck.
-  for (let s = 14; s < W - 14; s += 24) {
-    for (let i = 0; i <= 24; i++) {
-      const y = 33 + Math.round(3 * Math.sin((Math.PI * i) / 24));
-      g.set(s + i, y, i % 3 === 0 ? 'O' : i % 7 === 0 ? 'm' : 'o');
-    }
-  }
-  return g;
-}
-
 function papelPicadoFlag(g, x, y, w, h, col) {
   g.rect(x, y, w, h, col);
   // Cut-out pattern.
@@ -579,17 +555,22 @@ function papelPicadoFlag(g, x, y, w, h, col) {
   for (let i = 0; i < w; i += 2) g.set(x + i, y + h - 1, '.');
 }
 
-function banner() {
-  const g = new Grid(64, 56);
-  g.rect(1, 4, 2, 52, 'd').rect(61, 4, 2, 52, 'd');
-  g.rect(1, 2, 2, 2, 'O').rect(61, 2, 2, 2, 'O');
-  for (let x = 3; x <= 60; x++) g.set(x, 19 + Math.round(2 * Math.sin((Math.PI * (x - 3)) / 57)), 'b');
-  const cols = ['m', 'o', 'T', 'p', 'y', 'G', 'm'];
-  for (let i = 0; i < 7; i++) {
-    const fx = 4 + i * 8;
-    const ry = 20 + Math.round(2 * Math.sin((Math.PI * (fx + 3 - 3)) / 57));
-    papelPicadoFlag(g, fx, ry, 7, 12, cols[i]);
+/** Papel picado strung low across the whole canal, bank to bank: duck under it. */
+function picadoBridge() {
+  const W = 240, H = 56, g = new Grid(W, H);
+  // Poles on each bank, topped with marigolds.
+  for (const x of [1, W - 4]) {
+    g.rect(x, 4, 3, 52, 'd').rect(x + 1, 6, 1, 50, 'w');
+    g.rect(x - 1, 1, 5, 3, 'o').set(x + 1, 2, 'y');
   }
+  const sag = (x, top, depth) => top + Math.round(depth * Math.sin((Math.PI * (x - 4)) / (W - 8)));
+  const cols = ['m', 'o', 'T', 'p', 'y', 'G'];
+  // High string of small flags.
+  for (let x = 4; x < W - 4; x++) g.set(x, sag(x, 5, 3), 'b');
+  for (let i = 0, fx = 6; fx < W - 10; fx += 7, i++) papelPicadoFlag(g, fx, sag(fx + 2, 6, 3), 5, 7, cols[(i + 3) % cols.length]);
+  // Low string of big flags: this is the part you duck under.
+  for (let x = 4; x < W - 4; x++) g.set(x, sag(x, 18, 3), 'b');
+  for (let i = 0, fx = 5; fx < W - 11; fx += 8, i++) papelPicadoFlag(g, fx, sag(fx + 3, 19, 3), 7, 12, cols[i % cols.length]);
   return g;
 }
 
@@ -792,8 +773,7 @@ const BASE = {
   vendorL: [vendor],
   vendorR: [vendor.mirrorX()],
   lirio: [lirio(11), lirio(23)],
-  bridge: [bridge()],
-  banner: [banner()],
+  picado: [picadoBridge()],
   bunting: [bunting()],
   ahuejote: [ahuejote(1), ahuejote(2), ahuejote(3)],
   chinampa: [chinampa(5), chinampa(9), chinampa(13)],
