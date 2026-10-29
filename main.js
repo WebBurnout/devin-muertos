@@ -12,16 +12,17 @@ const CONFIG = {
   // patterns = weighted obstacle patterns used by the random row spawner.
   zones: [
     { name: 'EMBARCADERO', sub: 'NATIVITAS, 1 DE NOVIEMBRE', dur: 30, rowEvery: 2.4,
-      patterns: { traj: 3, lirio: 1, banner: 1, empty: 1 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 2, lirio: 1, banner: 1, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
-      patterns: { traj: 4, traj2: 2, mariachi: 1, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 4, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 1, lirio: 2, banner: 1, bridge: 0.6, empty: 1.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { traj: 3, traj2: 1.5, lirio: 2, banner: 1, bridge: 0.6, empty: 0.8 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
-      patterns: { traj: 2, llorona: 1.4, vendor: 1, lirio: 1, empty: 0.6 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
+      patterns: { traj: 4, traj2: 2, llorona: 1.4, vendor: 1, lirio: 1, empty: 0.3 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
     { name: 'LA OFRENDA', sub: 'LLÉVALAS A CASA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
+  bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
   zoneTimeScale: 1,          // multiply all zone durations (?short=1 sets 0.4)
   titleCardTime: 2.8,
 
@@ -1027,13 +1028,22 @@ function updateDecorSpawns(dt) {
     G.buntingT = rand(8, 14);
     spawn('decor', 'bunting', 0, CONFIG.spawnZ, { y: 3.4 });
   }
-  if (G.zone === 0) {
-    G.decorT -= dt;
-    if (G.decorT <= 0) {
-      G.decorT = rand(1.5, 3);
+  // Parked trajineras line the banks in every zone (docks only at the embarcadero).
+  G.decorT -= dt;
+  if (G.decorT <= 0) {
+    G.decorT = rand(CONFIG.bankBoatEvery[0], CONFIG.bankBoatEvery[1]);
+    const side = pick([-1, 1]);
+    if (G.zone === 0 && Math.random() < 0.35) spawn('decor', 'dock', side * (G.bankX + 0.6), CONFIG.spawnZ, { y: -0.2 });
+    else spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
+  }
+  // Out on the open lake (and at the ofrenda) extra boats drift between the lanes and the banks.
+  const open = G.bankX - CONFIG.laneWidth * 2.1;
+  if (open > 1.2) {
+    G.driftT = (G.driftT || 0) - dt;
+    if (G.driftT <= 0) {
+      G.driftT = rand(0.9, 1.8);
       const side = pick([-1, 1]);
-      if (Math.random() < 0.5) spawn('decor', 'dock', side * (G.bankX + 0.6), CONFIG.spawnZ, { y: -0.2 });
-      else spawn('decor', pick(['traj0', 'traj1', 'traj2']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
+      spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (CONFIG.laneWidth * 2.1 + rand(0.4, open)), CONFIG.spawnZ, { y: -0.12, vz: -rand(0.5, 2) });
     }
   }
 }
