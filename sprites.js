@@ -775,7 +775,7 @@ const TRAJ_STYLES = [
 ];
 const vendor = vendorCanoe();
 
-export const SPRITES = {
+const BASE = {
   dog: [dogs.normal, dogs.twitch],
   dogJump: [dogs.jump],
   dogDuck: [dogs.duck],
@@ -804,3 +804,108 @@ export const SPRITES = {
   doll: [DOLL],
   ofrenda: [ofrenda()],
 };
+
+// ---------------------------------------------------------------------------
+// High-res pass: every sprite is doubled with EPX (smooths diagonals and
+// curves), then rim-lit and textured using only palette colors.
+// ---------------------------------------------------------------------------
+const LIGHT = { o: 'O', O: 'y', m: 'p', t: 'T', d: 'w', g: 'G', T: 'b', p: 'b', y: 'b', w: 'o' };
+const DARK = { O: 'o', o: 'w', y: 'O', T: 't', t: 'W', p: 'm', m: 'V', G: 'g', g: 'd', w: 'd', d: 'k', V: 'P', W: 'P', b: 'T' };
+
+function epx(src) {
+  const g = new Grid(src.w * 2, src.h * 2);
+  for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) {
+    const P = src.get(x, y), A = src.get(x, y - 1), B = src.get(x + 1, y), C = src.get(x - 1, y), D = src.get(x, y + 1);
+    let p1 = P, p2 = P, p3 = P, p4 = P;
+    if (C === A && C !== D && A !== B) p1 = A;
+    if (A === B && A !== C && B !== D) p2 = B;
+    if (D === C && D !== B && C !== A) p3 = C;
+    if (B === D && B !== A && D !== C) p4 = D;
+    g.set(2 * x, 2 * y, p1).set(2 * x + 1, 2 * y, p2).set(2 * x, 2 * y + 1, p3).set(2 * x + 1, 2 * y + 1, p4);
+  }
+  return g;
+}
+
+function shade(g) {
+  const s = g.clone();
+  const open = (x, y) => { const c = s.get(x, y); return c === '.' || c === 'k'; };
+  const hash = (x, y) => (Math.imul(x + 1, 73856093) ^ Math.imul(y + 1, 19349663)) >>> 0;
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+    const c = s.get(x, y);
+    if (c === '.') continue;
+    let n = c;
+    if (c === 'k') { if (s.get(x, y - 1) === '.') n = 'V'; }
+    else if (open(x, y - 1) && LIGHT[c]) n = LIGHT[c];
+    else if ((open(x, y + 1) || open(x + 1, y)) && DARK[c]) n = DARK[c];
+    else {
+      const h = hash(x, y);
+      if (c === 'w' && (y * 7 + (x >> 2) * 5) % 9 === 0 && h % 3) n = 'd';
+      else if (c === 'g' && h % 11 === 0) n = 'G';
+      else if (c === 'o' && h % 13 === 0) n = 'O';
+      else if (c === 'm' && h % 19 === 0) n = 'p';
+    }
+    g.set(x, y, n);
+  }
+  return g;
+}
+
+export function hires(grid) { return shade(epx(grid)); }
+
+/** La Llorona, drawn natively at high resolution (48x80). */
+function lloronaHD() {
+  const W = 48, H = 80, cx = 24, g = new Grid(W, H);
+  // Flowing gown that widens into ragged, ghostly tatters.
+  for (let y = 24; y < H; y++) {
+    const hw = 7 + (y - 24) * 0.3 + Math.sin(y * 0.35) * 1.2;
+    for (let x = Math.floor(cx - hw); x < Math.ceil(cx + hw); x++) {
+      if (y > 62) {
+        const strand = Math.floor((x + 99) / 3);
+        if (y > 64 + ((strand * 7) % 14)) continue;
+      }
+      const edge = x <= cx - hw + 1 || x >= cx + hw - 2;
+      const fold = Math.round(x - cx + Math.sin(y * 0.2) * 1.5) % 6 === 0;
+      g.set(x, y, edge || fold ? 'T' : y > 56 && (x + y) % 7 === 0 ? 'T' : 'b');
+    }
+  }
+  // Outstretched arms with long drooping sleeves.
+  for (let x = 5; x < 43; x++) g.rect(x, 26 + Math.abs(x - cx) * 0.12, 1, 3, 'b');
+  for (const [x0, x1] of [[5, 18], [30, 43]]) {
+    for (let x = x0; x < x1; x++) {
+      const len = 4 + ((x * 5) % 8);
+      g.rect(x, 29 + Math.abs(x - cx) * 0.12, 1, len, x % 3 === 0 ? 'T' : 'b');
+    }
+  }
+  // Bony, reaching hands.
+  for (const [hx, dir] of [[4, -1], [43, 1]]) {
+    g.rect(hx - (dir > 0 ? 0 : 2), 28, 3, 3, 'b');
+    for (let f = 0; f < 3; f++) g.line(hx + dir, 28 + f, hx + dir * 4, 30 + f * 2, f === 1 ? 'b' : 'T');
+  }
+  // Long black hair, strands catching violet moonlight.
+  g.ellipse(cx - 0.5, 10, 9.5, 8, 'k');
+  for (let x = cx - 10; x <= cx + 9; x++) {
+    if (Math.abs(x - cx + 0.5) < 5) continue;
+    const len = 24 + ((x * 11) % 9) + (Math.abs(x - cx + 0.5) > 7 ? 10 : 0);
+    g.rect(x, 12, 1, len, 'k');
+    if ((x * 7) % 3 === 0) g.rect(x, 14 + ((x * 5) % 6), 1, len - 10, 'V');
+  }
+  // Marigold crown.
+  for (const fx of [16, 20, 24, 28, 32]) {
+    const fy = 3 + Math.round(Math.abs(fx - cx) * 0.25);
+    g.set(fx, fy, 'O').set(fx - 1, fy, 'o').set(fx + 1, fy, 'o').set(fx, fy - 1, 'o').set(fx, fy + 1, 'o');
+  }
+  g.rect(20, 18, 8, 8, 'b');
+  // Pale face: hollow eyes with a cold glow, tear streaks, open wailing mouth.
+  g.ellipse(cx - 0.5, 15, 4.5, 6.5, 'b');
+  g.rect(19, 12, 3, 3, 'k').rect(26, 12, 3, 3, 'k');
+  g.set(20, 13, 'T').set(27, 13, 'T');
+  g.rect(20, 15, 1, 4, 'T').rect(27, 15, 1, 4, 'T');
+  g.ellipse(cx - 0.5, 19.5, 1.5, 2, 'k');
+  g.set(23, 18, 'V').set(24, 18, 'V');
+  g.rect(20, 10, 2, 1, 'T').rect(26, 10, 2, 1, 'T');
+  return g;
+}
+
+/** Low-res originals, used for the 320x180 HUD icons. */
+export const ICONS = BASE;
+export const SPRITES = Object.fromEntries(Object.entries(BASE).map(([k, frames]) => [k, frames.map(hires)]));
+SPRITES.llorona = [lloronaHD()];

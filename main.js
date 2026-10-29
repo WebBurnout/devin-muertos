@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -12,18 +12,19 @@ const CONFIG = {
   // patterns = weighted obstacle patterns used by the random row spawner.
   zones: [
     { name: 'EMBARCADERO', sub: 'NATIVITAS, 1 DE NOVIEMBRE', dur: 30, rowEvery: 2.4,
-      patterns: { traj: 5, traj2: 2, lirio: 1, banner: 1, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 2, llorona: 1.5, lirio: 1, banner: 1, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
-      patterns: { traj: 5, traj2: 4, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 3, traj2: 1.5, llorona: 1.5, lirio: 2, banner: 1, bridge: 0.6, empty: 0.8 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, banner: 1, bridge: 0.6, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
-      patterns: { traj: 4, traj2: 2, llorona: 3.5, llorona2: 1.5, vendor: 1, lirio: 1, empty: 0.3 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
+      patterns: { traj: 4, traj2: 2, llorona: 7, llorona2: 4, llorona3: 2, vendor: 1, lirio: 1, empty: 0.2 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
     { name: 'LA OFRENDA', sub: 'LLÉVALAS A CASA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
   bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
-  bankLloronaEvery: [1.5, 3.5], // seconds between harmless Lloronas on the banks (zones 3-4)
+  bankLloronaEvery: [0.7, 1.6], // seconds between harmless Lloronas on the banks (x2.5 in zone 1, x1.5 in zone 2)
+  skyLloronaEvery: [1.5, 3.5],  // seconds between Lloronas floating across the sky (zones 3-5)
   zoneTimeScale: 1,          // multiply all zone durations (?short=1 sets 0.4)
   titleCardTime: 2.8,
 
@@ -70,12 +71,13 @@ const CONFIG = {
   tiltHysteresis: 3,
 
   // World
-  px: 1 / 24,                // world units per sprite pixel
+  px: 1 / 48,                // world units per sprite pixel (sprites are high-res)
   bankX: 4.2,
   camera: { fov: 50, pos: [0, 2.1, 7], lookAt: [0, 0.9, -8], follow: 0.3 },
 };
 
-const LOW_W = 320, LOW_H = 180;
+const LOW_W = 320, LOW_H = 180;   // HUD resolution
+const RT_W = 640, RT_H = 360;     // 3D render resolution
 const PX = CONFIG.px;
 const params = new URLSearchParams(location.search);
 if (params.has('short')) CONFIG.zoneTimeScale = 0.4;
@@ -91,12 +93,12 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 document.body.appendChild(renderer.domElement);
 
-const rt = new THREE.WebGLRenderTarget(LOW_W, LOW_H, {
+const rt = new THREE.WebGLRenderTarget(RT_W, RT_H, {
   minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: true,
 });
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(PALETTE.P, 10, 60);
-const camera = new THREE.PerspectiveCamera(CONFIG.camera.fov, LOW_W / LOW_H, 0.1, 400);
+const camera = new THREE.PerspectiveCamera(CONFIG.camera.fov, RT_W / RT_H, 0.1, 400);
 camera.position.set(...CONFIG.camera.pos);
 
 // HUD is drawn with canvas 2D at 320x180 and composited over the 3D frame.
@@ -175,7 +177,7 @@ function setFrame(sprite, frame) {
   sprite.material = spriteMat(sprite.userData.name, frame, sprite.userData.variant);
 }
 const hudIcons = {};
-for (const n of ['soul', 'petal', 'candle', 'ajolote', 'pan']) hudIcons[n] = gridToCanvas(SPRITES[n][0]);
+for (const n of ['soul', 'petal', 'candle', 'ajolote', 'pan']) hudIcons[n] = gridToCanvas(ICONS[n][0]);
 
 // ===========================================================================
 // Sky: dithered palette gradient with stars and moon. It warms from night to
@@ -609,6 +611,7 @@ function spawnRow(kind) {
     }
     case 'llorona': spawnLlorona(pick([-1, 1]), 2); break;
     case 'llorona2': spawnLlorona(-1, 2); spawnLlorona(1, 3.2); break;
+    case 'llorona3': { const sd = pick([-1, 1]); spawnLlorona(sd, 1.5); spawnLlorona(-sd, 2.6); spawnLlorona(sd, 3.7); break; }
     // Tutorial-only patterns
     case 'tut-souls': free = []; spawnSoulLine(1, z, false); hint = 'souls'; break;
     case 'tut-lane': take(1); spawnTrajinera(1, z); spawnSoulLine(0, z - 2, false); hint = 'lane'; soulsOK = false; break;
@@ -992,7 +995,7 @@ function updatePlay(dt) {
       if (e.flyT <= 0) { e.vz = 0; e.vx = 0; e.y = 0.35; e.x = laneX(Math.round(e.x / CONFIG.laneWidth) + 1); }
     }
     if (e.kind === 'fx') { e.life -= dt; if (e.life <= 0) e.dead = true; }
-    if (e.llorona) e.y = 0.25 + Math.sin(G.time * 2 + e.phase) * 0.15;
+    if (e.llorona) e.y = (e.baseY ?? 0.25) + Math.sin(G.time * 2 + e.phase) * 0.15;
     if (magnet && (e.kind === 'soul' || e.kind === 'petal') && !(e.flyT > 0) && e.z > -CONFIG.magnetRadius * 1.5 && e.z < 1) {
       e.x += (G.x - e.x) * Math.min(1, dt * 6);
       e.z += (0 - e.z) * Math.min(1, dt * 3);
@@ -1043,13 +1046,22 @@ function updateDecorSpawns(dt) {
     if (G.zone === 0 && Math.random() < 0.35) spawn('decor', 'dock', side * (G.bankX + 0.6), CONFIG.spawnZ, { y: -0.2 });
     else spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
   }
-  // Harmless Lloronas haunt the banks at the doll island and the lake.
-  if (state === 'play' && (G.zone === 2 || G.zone === 3) && !G.finale) {
+  // Harmless Lloronas haunt the banks (more of them deeper into the night)...
+  if (state === 'play') {
     G.ghostT = (G.ghostT || 0) - dt;
     if (G.ghostT <= 0) {
-      G.ghostT = rand(CONFIG.bankLloronaEvery[0], CONFIG.bankLloronaEvery[1]);
+      G.ghostT = rand(CONFIG.bankLloronaEvery[0], CONFIG.bankLloronaEvery[1]) * (G.zone === 0 ? 2.5 : G.zone === 1 ? 1.5 : 1);
       const side = pick([-1, 1]);
       spawn('decor', 'llorona', side * (G.bankX - rand(0.3, 1.2)), CONFIG.spawnZ, { variant: 'ghost', y: 0.25, fps: 1, llorona: true, scale: 1.6 });
+    }
+  }
+  // ...and drift across the sky from the doll island onward.
+  if (state === 'play' && G.zone >= 2) {
+    G.skyGhostT = (G.skyGhostT || 2) - dt;
+    if (G.skyGhostT <= 0) {
+      G.skyGhostT = rand(CONFIG.skyLloronaEvery[0], CONFIG.skyLloronaEvery[1]);
+      const side = pick([-1, 1]);
+      spawn('decor', 'llorona', side * rand(6, 10), CONFIG.spawnZ * rand(0.5, 0.9), { variant: 'ghost', baseY: rand(3.5, 6), vx: -side * rand(2, 4), fps: 1, llorona: true, scale: rand(1.2, 2) });
     }
   }
   // Out on the open lake (and at the ofrenda) extra boats drift between the lanes and the banks.
@@ -1157,6 +1169,7 @@ function drawMuteButton() {
 }
 
 function drawHUD() {
+  document.body.classList.toggle('playing', state !== 'title');
   hud.clearRect(0, 0, LOW_W, LOW_H);
   if (state === 'title') { drawTitle(); drawMuteButton(); return; }
 

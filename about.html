@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1a0b2e" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 8 8%22%3E%3Ccircle cx=%224%22 cy=%224%22 r=%223.5%22 fill=%22%23ff9800%22/%3E%3C/svg%3E" />
+  <title>About · Xochimilco de Muertos</title>
+  <style>
+    :root { --P:#1a0b2e; --V:#2e1a47; --o:#ff9800; --O:#ffc04d; --m:#e0218a; --p:#ff7eb6; --T:#6ef0d8; --t:#1fb5a3; --b:#f4ecd8; --y:#ffe066; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--P); color: var(--b); font: 16px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    main { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+    h1 { color: var(--O); font-size: 34px; margin: 0; letter-spacing: 2px; text-shadow: 3px 3px 0 var(--m); }
+    h1 small { display: block; color: var(--p); font-size: 18px; text-shadow: none; letter-spacing: 1px; }
+    h2 { color: var(--o); border-bottom: 2px solid var(--o); padding-bottom: 4px; margin-top: 44px; letter-spacing: 1px; }
+    h3 { color: var(--T); margin: 0 0 4px; font-size: 16px; }
+    a { color: var(--T); }
+    .play { display: inline-block; margin: 18px 12px 0 0; padding: 10px 18px; border: 3px solid var(--o); background: var(--V);
+      color: var(--O); font-weight: bold; text-decoration: none; letter-spacing: 1px; }
+    .play:hover { background: var(--m); color: var(--b); }
+    .lead { color: var(--b); font-size: 17px; }
+    kbd { background: var(--V); border: 1px solid var(--o); border-bottom-width: 3px; padding: 0 6px; color: var(--O); font: inherit; font-size: 14px; }
+    code { color: var(--y); }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--V); }
+    th { color: var(--O); }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card { background: var(--V); border: 2px solid #3e2a5c; padding: 12px; display: flex; gap: 12px; align-items: flex-start; }
+    .card canvas { flex: none; image-rendering: pixelated; background: #24123c; }
+    .card p { margin: 0; font-size: 14px; }
+    .tag { display: inline-block; font-size: 11px; padding: 0 6px; margin-left: 4px; border: 1px solid; }
+    .tag.bad { color: var(--m); } .tag.good { color: var(--T); } .tag.safe { color: var(--O); }
+    .zone { border-left: 4px solid var(--o); padding: 4px 0 4px 14px; margin: 14px 0; }
+    .zone b { color: var(--O); }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>XOCHIMILCO DE MUERTOS <small>Un xolo, una canoa y las almas perdidas</small></h1>
+  <p class="lead">It's the night of Día de Muertos in Xochimilco, Mexico City. You're a xoloitzcuintle (the hairless dog who guides souls to the
+    land of the dead) paddling a canoa through the canals. Lost souls are drifting on the water. Gather as many as you can and bring them
+    to the ofrenda before dawn.</p>
+  <a class="play" href="./">▶ PLAY</a>
+  <a class="play" href="./?short">▶ PLAY SHORT DEMO</a>
+
+  <h2>Controls</h2>
+  <table>
+    <tr><th></th><th>Desktop</th><th>Phone (hold it sideways)</th></tr>
+    <tr><td>Steer between the 3 lanes</td><td><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd></td><td>Tilt the phone. You snap to the nearest lane. If tilt isn't available, swipe left or right.</td></tr>
+    <tr><td>Jump</td><td><kbd>Space</kbd>, <kbd>↑</kbd> or <kbd>W</kbd></td><td>The big <b>JUMP</b> button (or swipe up)</td></tr>
+    <tr><td>Duck</td><td><kbd>↓</kbd> or <kbd>S</kbd></td><td>Swipe down</td></tr>
+    <tr><td>Mute</td><td><kbd>M</kbd></td><td>Speaker icon, top right</td></tr>
+  </table>
+  <p>On iPhone, the game asks for motion access on your first tap. Choose <b>Allow</b> to steer by tilting.</p>
+
+  <h2>How a run works</h2>
+  <ul>
+    <li><b>Souls are your score.</b> Each soul you touch joins the glowing trail behind your canoa. Souls floating up high need a jump.</li>
+    <li><b>Getting hit scatters half your trail.</b> The scattered souls fly off and land back in the lanes, so you can win them back. You're then invulnerable for 1.5 seconds and flicker.</li>
+    <li><b>Your candle is your light.</b> It burns down over about 45 seconds, and the fog closes in as it dims. Each candle you pick up refills half of it, and a candle shows up at least every 9 seconds.</li>
+    <li><b>Speed rises gently</b> over the run, and the sky moves from purple midnight toward an orange dawn.</li>
+    <li><b>The finale:</b> in the last zone the ofrenda rises out of the water. Your souls fly up to it one by one (<i>ENTREGADAS</i>) and you get the win screen.
+      Points = souls delivered × 10 + petals.</li>
+  </ul>
+
+  <h2>Pickups</h2>
+  <div class="cards" id="pickups"></div>
+
+  <h2>Obstacles</h2>
+  <div class="cards" id="obstacles"></div>
+
+  <h2>The five zones</h2>
+  <p>The thin bar at the top of the screen shows how far you are from the ofrenda, and the box beside it shows the zone you're in (e.g. <code>ZONA 4/5 EL LAGO</code>).
+    A full run takes about three minutes, or a little over one with <code>?short</code>.</p>
+  <div class="zone"><b>1 · EMBARCADERO</b>: the trajinera dock at Nativitas. A short tutorial teaches steering, jumping, lirios, ducking and candles. Boats are parked along the banks, and the first Lloronas appear.</div>
+  <div class="zone"><b>2 · CANAL PRINCIPAL</b>: the busiest stretch. Rows of trajineras, mariachi boats (listen for the trumpet), vendor canoes cutting across, bridges, and papel picado to duck under.</div>
+  <div class="zone"><b>3 · ISLA DE LAS MUÑECAS</b>: Island of the Dolls. Dolls hang from the trees, the fog is thick, and you get more souls but less light. La Llorona comes at you in waves and floats overhead.</div>
+  <div class="zone"><b>4 · EL LAGO</b>: the canal opens into a wide lake under a dawn-pink horizon. This is La Llorona's home, so expect many of her, sometimes in pairs or groups of three, plus drifting boats on the open water.</div>
+  <div class="zone"><b>5 · LA OFRENDA</b>: no obstacles. The marigold arch and ofrenda rise from the water, and you deliver your souls.</div>
+
+  <h2>Demo mode &amp; shortcuts</h2>
+  <ul>
+    <li><b>Very easy by design.</b> Hitboxes are 60% the size of the sprites. Getting hit with an empty trail <i>doesn't</i> end the run; you just flicker. The game-over screen is still there behind <code>CONFIG.allowGameOver</code>.</li>
+    <li><kbd>1</kbd>–<kbd>5</kbd> jump straight to a zone at any time, including from the title or win screen (numpad works too). <kbd>N</kbd> skips to the next zone. <kbd>Esc</kbd> goes back to the title.</li>
+    <li><b>Phone:</b> tap with three fingers to skip to the next zone. The title screen has a button for each zone.</li>
+    <li><b>URL options:</b> <a href="./?zone=4"><code>?zone=4</code></a> starts at a zone, and <a href="./?short"><code>?short</code></a> cuts every zone to 40% of its length. Combine them: <a href="./?zone=3&amp;short"><code>?zone=3&amp;short</code></a>.</li>
+    <li>When you skip ahead with an empty trail, you're given 8 souls so the finale still has something to deliver.</li>
+  </ul>
+
+  <h2>How it's made</h2>
+  <ul>
+    <li>Static site, frontend only. There's no build step, no backend and not a single image file. <a href="https://github.com/WebBurnout/devin-muertos">Source on GitHub</a>.</li>
+    <li>3D with <a href="https://threejs.org">Three.js</a> (loaded from a CDN through an import map). The scene renders to a 640×360 target and is scaled up to the window with nearest-neighbor filtering and 16:9 letterboxing. The HUD is a 320×180 canvas drawn on top.</li>
+    <li>Every sprite is a grid of characters written in code (<code>sprites.js</code>) using a locked 16-color palette. Each one is doubled with the EPX pixel-art scaler, then given rim light, shadow and texture. La Llorona is drawn at full resolution by hand. All sprites are camera-facing billboards in a 3D canal.</li>
+    <li>All sound is synthesized live with the Web Audio API: paddle splashes, soul chimes, mariachi trumpet cues, La Llorona's wail and an ambient drone.</li>
+    <li>Every tuning value (speed, zone length, spawn mix, hitbox size, candle drain, number of Lloronas…) lives in one <code>CONFIG</code> object at the top of <code>main.js</code>.</li>
+  </ul>
+  <a class="play" href="./">▶ PLAY</a>
+</main>
+<script type="module">
+  import { SPRITES, gridToCanvas } from './sprites.js';
+  const PICKUPS = [
+    ['soul', 'Lost soul', 'good', 'Joins your trail. Low ones float on the water; high ones need a jump.'],
+    ['candle', 'Candle', 'good', 'Refills half of your light and pushes the fog back.'],
+    ['petal', 'Cempasúchil petals', 'good', 'Bonus points. They come in lines of five.'],
+    ['pan', 'Pan de muerto', 'good', 'Soul magnet for 5 seconds. It pulls in nearby souls, high ones included.'],
+    ['ajolote', 'Ajolote', 'good', 'Shield. It absorbs the next hit before any souls scatter.'],
+  ];
+  const OBSTACLES = [
+    ['traj0', 'Trajinera', 'bad', 'Colorful party boats drifting in a lane. Change lanes to pass them. Sometimes they come in pairs, but one lane always stays clear.'],
+    ['mariachi', 'Mariachi boat', 'bad', 'A trumpet fanfare plays about 2 seconds before it appears, so you know it\'s coming.'],
+    ['vendorL', 'Vendor canoe', 'bad', 'Food sellers paddling sideways across the canal. Watch their path.'],
+    ['llorona', 'La Llorona', 'bad', 'Her wail warns you 2 seconds before she glides diagonally across the lanes, sometimes two or three at once. The Lloronas on the banks and in the sky are harmless.'],
+    ['lirio', 'Lirios (water hyacinth)', 'safe', 'They don\'t hurt you, but they slow you to about half speed for a second. Jump over them.'],
+    ['banner', 'Papel picado', 'bad', 'Strung low across a lane. Duck under it.'],
+    ['bridge', 'Bridge', 'bad', 'Spans all three lanes. Duck to pass under it.'],
+  ];
+  const TAGS = { good: 'PICKUP', bad: 'AVOID', safe: 'SLOWS' };
+  function fill(id, list) {
+    const el = document.getElementById(id);
+    for (const [name, title, kind, desc] of list) {
+      const g = SPRITES[name][0];
+      const cv = gridToCanvas(g);
+      const scale = Math.min(96 / g.w, 96 / g.h, 4);
+      cv.style.width = g.w * scale + 'px'; cv.style.height = g.h * scale + 'px';
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.append(cv);
+      const txt = document.createElement('div');
+      txt.innerHTML = `<h3>${title}<span class="tag ${kind}">${TAGS[kind]}</span></h3><p>${desc}</p>`;
+      card.append(txt);
+      el.append(card);
+    }
+  }
+  fill('pickups', PICKUPS);
+  fill('obstacles', OBSTACLES);
+</script>
+</body>
+</html>

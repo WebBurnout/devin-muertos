@@ -24,6 +24,10 @@
     }
     #rotate .phone { width: 40px; height: 70px; border: 4px solid #ff9800; border-radius: 6px; margin-bottom: 20px;
       animation: rot 1.6s ease-in-out infinite; }
+    #about { position: fixed; top: 10px; left: 10px; z-index: 5; padding: 6px 10px; border: 2px solid #ff9800;
+      background: rgba(26, 11, 46, 0.85); color: #ffc04d; font: bold 13px/1 monospace; text-decoration: none; letter-spacing: 1px; }
+    #about:hover { background: #e0218a; color: #f4ecd8; }
+    body.playing #about { display: none; }
     @keyframes rot { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
   </style>
   <script type="importmap">
@@ -31,6 +35,7 @@
   </script>
 </head>
 <body>
+  <a id="about" href="./about.html" onpointerdown="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation()">ABOUT / CÓMO SE JUEGA</a>
   <button id="jump" aria-label="Jump">JUMP</button>
   <div id="rotate"><div class="phone"></div>GIRA TU TELÉFONO<br /><small>Rotate your phone to landscape</small></div>
   <script type="module" src="./main.js"></script>

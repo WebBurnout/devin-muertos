@@ -20,4 +20,4 @@ then open http://localhost:8000/.
 - Zone buttons on the title screen
 - `?zone=4` starts at a zone, and `?short` makes every zone shorter
 
-All tuning lives in `CONFIG` at the top of `main.js`.
+All tuning lives in `CONFIG` at the top of `main.js`. `about.html` explains the game's mechanics for demos (it's linked from the title screen).
