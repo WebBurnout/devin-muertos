@@ -490,10 +490,10 @@ function enterZone(i) {
 function skipToZone(i) {
   i = Math.max(0, Math.min(CONFIG.zones.length - 1, i));
   if (state !== 'play') return;
-  if (G.finale && i === 4) return;
   for (const e of entities) scene.remove(e.s);
   entities.length = 0;
   G.events.length = 0;
+  for (const t of trail) delete t.flying;
   G.finale = null;
   G.runTime = zoneStart[i] + 0.001;
   G.zoneTime = 0;
@@ -798,16 +798,20 @@ window.addEventListener('keydown', (ev) => {
   if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(k)) ev.preventDefault();
   if (ev.repeat) return;
   if (k === 'm' || k === 'M') { Sound.init(); Sound.toggleMute(); return; }
+  // Zone cheats: match on the physical key so they work on any layout and on the numpad, in any state.
+  const digit = /^(Digit|Numpad)([1-5])$/.exec(ev.code || '') || /^([1-5])$/.exec(k);
+  if (digit) {
+    const zi = parseInt(digit[digit.length - 1], 10) - 1;
+    if (state === 'play') skipToZone(zi); else startGame(zi);
+    return;
+  }
   if (state === 'play') {
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') moveLane(-1);
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') moveLane(1);
     else if (k === 'ArrowUp' || k === 'w' || k === 'W' || k === ' ') tryJump();
     else if (k === 'ArrowDown' || k === 's' || k === 'S') tryDuck();
-    else if (k >= '1' && k <= '5') skipToZone(parseInt(k, 10) - 1);
     else if (k === 'n' || k === 'N') skipToZone(G.zone + 1);
     else if (k === 'Escape') { state = 'title'; resetRun(); Sound.stopDrone(); }
-  } else if (state === 'title' && k >= '1' && k <= '5') {
-    primaryAction(parseInt(k, 10) - 1);
   } else if (k === ' ' || k === 'Enter') {
     primaryAction();
   } else if (k === 'Escape') { state = 'title'; resetRun(); }
