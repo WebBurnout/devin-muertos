@@ -417,28 +417,27 @@ const SPARKLE_B = Grid.from([
   '.......',
 ]);
 
-// Floating candle (ambient decor) with its reflection glinting on the water.
-const FLOAT_CANDLE_A = Grid.from([
-  '...y....',
-  '..yOy...',
-  '...o....',
-  '..bbb...',
-  '.obbbo..',
-  'oOoooOo.',
-  '..y.y...',
-  '...O....',
+// Floating cempasúchil blossom on a lily pad (ambient decor; not a pickup).
+const FLOAT_FLOWER_A = Grid.from([
+  '..oOo...',
+  '.oOyOo..',
+  '.mOOOm..',
+  '..oOo...',
+  'gGgggGg.',
+  '.gggggg.',
+  '..T..T..',
+  '........',
 ]);
-const FLOAT_CANDLE_B = Grid.from([
-  '....y...',
-  '..yOy...',
-  '...o....',
-  '..bbb...',
-  '.obbbo..',
-  'oOoooOo.',
-  '...y....',
-  '..O.....',
+const FLOAT_FLOWER_B = Grid.from([
+  '..oOo...',
+  '.oOyOo..',
+  '.mOOOm..',
+  '..oOo...',
+  'gGgggGg.',
+  '.gggggg.',
+  '...T..T.',
+  '........',
 ]);
-
 // ---------------------------------------------------------------------------
 // Boats
 // ---------------------------------------------------------------------------
@@ -801,7 +800,7 @@ const BASE = {
   dock: [dock()],
   petal: [PETAL],
   candle: [CANDLE_A, CANDLE_B],
-  floatCandle: [FLOAT_CANDLE_A, FLOAT_CANDLE_B],
+  floatFlower: [FLOAT_FLOWER_A, FLOAT_FLOWER_B],
   pan: [panDeMuerto()],
   ajolote: [AJOLOTE],
   sparkle: [SPARKLE_A, SPARKLE_B],

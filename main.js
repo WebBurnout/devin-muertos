@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=3';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=4';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -1050,13 +1050,14 @@ function updatePlay(dt) {
   G.skyP = G.finale ? Math.min(1, G.skyP + dt * 0.08) : Math.pow(progress, 1.7) * 0.8;
 }
 
-/** Ambient decor: floating candles, bunting, docks and parked trajineras. */
+/** Ambient decor: floating marigolds, bunting, docks and parked trajineras. */
 function updateDecorSpawns(dt) {
   G.floatT -= dt;
   if (G.floatT <= 0) {
     G.floatT = rand(0.5, 1.4);
-    const x = pick([-1, 1]) * pick([1.2, 3.6]) + rand(-0.3, 0.3);
-    spawn('decor', 'floatCandle', x, CONFIG.spawnZ + rand(0, 20), { y: -0.05, fps: 5 });
+    // Keep them along the banks, outside the three lanes.
+    const x = pick([-1, 1]) * rand(CONFIG.laneWidth * 1.6, Math.max(CONFIG.laneWidth * 1.7, G.bankX - 0.4));
+    spawn('decor', 'floatFlower', x, CONFIG.spawnZ + rand(0, 20), { y: -0.05, fps: 2 });
   }
   G.buntingT -= dt;
   if (G.buntingT <= 0 && !G.finale) {
