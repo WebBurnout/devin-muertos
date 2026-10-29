@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=3';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -14,12 +14,12 @@ const CONFIG = {
     { name: 'EMBARCADERO', sub: 'NATIVITAS, 1 DE NOVIEMBRE', dur: 30, rowEvery: 2.4,
       patterns: { traj: 5, traj2: 2, llorona: 1.5, lirio: 1, banner: 1, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
-      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1.5 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, banner: 1, bridge: 0.6, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, banner: 1.5, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
       patterns: { traj: 4, traj2: 2, llorona: 7, llorona2: 4, llorona3: 2, vendor: 1, lirio: 1, empty: 0.2 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
-    { name: 'LA OFRENDA', sub: 'LLÉVALAS A CASA', dur: 30, rowEvery: 0,
+    { name: 'MICTLÁN', sub: 'EL MÁS ALLÁ TE ESPERA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
   bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
@@ -34,7 +34,7 @@ const CONFIG = {
   speedSmoothing: 3,
   laneWidth: 2.4,
   laneSwitchTime: 0.14,
-  jumpTime: 0.75,
+  jumpTime: 0.95,
   jumpHeight: 1.8,
   duckTime: 0.75,
 
@@ -43,6 +43,7 @@ const CONFIG = {
   despawnZ: 8,
   soulLineLength: [3, 5],
   soulSpacing: 1.8,
+  blockWindow: 10,           // obstacles closer than this (z) count as one wall; one lane always stays open
   candleEvery: 9,            // seconds: a candle is guaranteed at least this often
   panChance: 0.06,           // per row
   ajoloteChance: 0.05,       // per row
@@ -554,14 +555,31 @@ function spawnSoulLine(lane, z, high) {
 function spawnPetalLine(lane, z) {
   for (let i = 0; i < 5; i++) spawn('petal', 'petal', laneX(lane), z - i * 1.4, { y: 0.35, hw: 0.45, hd: 0.6 });
 }
-function spawnCandle(lane, z) { G.sinceCandle = 0; return spawn('candle', 'candle', laneX(lane), z, { y: 0.15, hw: 0.45, hd: 0.6, fps: 6 }); }
+function spawnCandle(lane, z) { G.sinceCandle = 0; return spawn('candle', 'candle', laneX(lane), z, { y: 0.15, hw: 0.45, hd: 0.6, fps: 6, variant: 'nofog', scale: 1.25 }); }
+
+const laneOf = (x) => Math.max(0, Math.min(2, Math.round(x / CONFIG.laneWidth) + 1));
+/** Lanes blocked by static obstacles near z, plus how many lane-crossing obstacles are there. */
+function blockersNear(z, win = CONFIG.blockWindow) {
+  const lanes = new Set();
+  let movers = 0;
+  for (const e of entities) {
+    if (e.dead || (e.kind !== 'solid' && e.kind !== 'duck') || Math.abs(e.z - z) > win) continue;
+    if (e.vx || e.llorona) movers++;
+    else if (e.hw > 50) [0, 1, 2].forEach((l) => lanes.add(l));
+    else lanes.add(laneOf(e.x));
+  }
+  return { lanes, movers };
+}
 
 /** La Llorona glides across the canal; her wail warns you before she appears. */
 function spawnLlorona(side, delay) {
   if (G.time - (G.lastWail || -9) > 1.5) { Sound.wail(); G.lastWail = G.time; }
-  G.events.push({ t: G.time + delay, fn: () => spawn('solid', 'llorona', side * CONFIG.laneWidth * 1.7, -75, {
-    variant: 'ghost', vx: -side * 1.15, vz: -2.5, y: 0.25, hd: 0.6, hw: 0.45, fps: 1, llorona: true, scale: 1.6,
-  }) });
+  G.events.push({ t: G.time + delay, fn: () => {
+    if (blockersNear(-75).lanes.size > 1) return; // she'd close the last open lane
+    spawn('solid', 'llorona', side * CONFIG.laneWidth * 1.7, -75, {
+      variant: 'ghost', vx: -side * 1.15, vz: -2.5, y: 0.25, hd: 0.6, hw: 0.45, fps: 1, llorona: true, scale: 1.6,
+    });
+  } });
 }
 
 function spawnTrajinera(lane, z, mariachi = false) {
@@ -578,14 +596,25 @@ function spawnRow(kind) {
   let hint = null;
   let soulsOK = true;
 
+  // Never wall off the canal: at least one lane must stay open near this row.
+  const near = blockersNear(z);
+  free = free.filter((l) => !near.lanes.has(l));
+  const canBlock = (n) => near.lanes.size + n <= (near.movers ? 1 : 2);
+  if (['traj', 'banner', 'mariachi', 'lirio'].includes(kind) && (!free.length || (kind !== 'lirio' && !canBlock(1)))) kind = 'empty';
+  if (kind === 'traj2' && !canBlock(2)) kind = canBlock(1) && free.length ? 'traj' : 'empty';
+  if ((kind.startsWith('llorona') || kind === 'vendor') && near.lanes.size + near.movers > 1) kind = canBlock(1) && free.length ? 'traj' : 'empty';
+
   switch (kind) {
     case 'traj': { const l = take(pick(free)); spawnTrajinera(l, z); break; }
     case 'traj2': { const a = take(pick(free)), b = take(pick(free)); spawnTrajinera(a, z); spawnTrajinera(b, z - 3); break; }
     case 'mariachi': {
       // The trumpet cue plays now; the boat appears 2s later.
       Sound.mariachi();
-      const l = pick([0, 1, 2]);
-      G.events.push({ t: G.time + 2, fn: () => spawnTrajinera(l, CONFIG.spawnZ, true) });
+      const l = pick(free);
+      G.events.push({ t: G.time + 2, fn: () => {
+        const n = blockersNear(CONFIG.spawnZ);
+        if (!n.lanes.has(l) && n.lanes.size + 1 <= (n.movers ? 1 : 2)) spawnTrajinera(l, CONFIG.spawnZ, true);
+      } });
       take(l);
       break;
     }
@@ -603,12 +632,6 @@ function spawnRow(kind) {
       break;
     }
     case 'banner': { const l = take(pick(free)); spawn('duck', 'banner', laneX(l), z, { hw: 1.1 * CONFIG.hitboxScale + 0.3, hd: 0.35 }); break; }
-    case 'bridge': {
-      spawn('duck', 'bridge', 0, z, { hw: 99, hd: 0.5 });
-      free = [];
-      for (const l of [0, 1, 2]) if (Math.random() < 0.5) spawnSoul(laneX(l), z - 6);
-      break;
-    }
     case 'llorona': spawnLlorona(pick([-1, 1]), 2); break;
     case 'llorona2': spawnLlorona(-1, 2); spawnLlorona(1, 3.2); break;
     case 'llorona3': { const sd = pick([-1, 1]); spawnLlorona(sd, 1.5); spawnLlorona(-sd, 2.6); spawnLlorona(sd, 3.7); break; }
@@ -620,7 +643,7 @@ function spawnRow(kind) {
       for (const l of [0, 1, 2]) spawn('lirio', 'lirio', laneX(l), z, { hw: 0.9, hd: 0.8 });
       free = []; hint = 'lirio'; break;
     }
-    case 'tut-duck': spawn('duck', 'bridge', 0, z, { hw: 99, hd: 0.5 }); free = []; hint = 'duck'; break;
+    case 'tut-duck': { const l = take(G.lane); spawn('duck', 'banner', laneX(l), z, { hw: 1.1 * CONFIG.hitboxScale + 0.3, hd: 0.35 }); hint = 'duck'; soulsOK = false; break; }
     case 'tut-candle': free = []; spawnCandle(0, z); spawnCandle(1, z); spawnCandle(2, z); hint = 'candle'; break;
     default: break; // 'empty'
   }
@@ -642,7 +665,7 @@ const HINTS = {
   lane: () => (tilt.active ? 'TILT YOUR PHONE TO STEER' : IS_TOUCH ? 'SWIPE ← → TO STEER' : '← → OR A D TO STEER'),
   jump: () => (IS_TOUCH ? 'TAP JUMP TO GRAB HIGH SOULS' : 'SPACE / ↑ TO JUMP FOR HIGH SOULS'),
   lirio: () => 'JUMP OVER THE LIRIOS OR THEY SLOW YOU',
-  duck: () => (IS_TOUCH ? 'SWIPE DOWN TO DUCK' : '↓ OR S TO DUCK UNDER BRIDGES'),
+  duck: () => (IS_TOUCH ? 'SWIPE DOWN TO DUCK' : '↓ OR S TO DUCK UNDER PAPEL PICADO'),
   candle: () => 'CANDLES KEEP YOUR LIGHT BURNING',
 };
 
@@ -686,16 +709,16 @@ function scatterSouls() {
 }
 
 // ===========================================================================
-// Ofrenda finale
+// Afterlife (Mictlán) finale
 // ===========================================================================
 function startFinale() {
   for (const e of entities) if (e.kind !== 'soul' && e.kind !== 'petal' && e.kind !== 'decor') e.dead = true;
-  const o = spawn('decor', 'ofrenda', 0, -95, { scale: 2.6, variant: 'nofog', y: -9 });
-  G.finale = { ofrenda: o, stage: 'approach', nextT: 0, idx: 0 };
+  const o = spawn('decor', 'afterlife', 0, -95, { scale: 2.6, variant: 'nofog', y: -9 });
+  G.finale = { gate: o, stage: 'approach', nextT: 0, idx: 0 };
 }
 function updateFinale(dt) {
   const f = G.finale;
-  const o = f.ofrenda;
+  const o = f.gate;
   o.y = Math.min(0, o.y + dt * 2.5); // rises out of the water
   if (f.stage === 'approach' && o.z > -21) { f.stage = 'deliver'; f.nextT = G.time + 0.6; }
   if (f.stage === 'deliver' && G.time >= f.nextT) {
@@ -707,13 +730,13 @@ function updateFinale(dt) {
       f.stage = 'done'; G.endT = G.time + 2.2;
     }
   }
-  // Animate souls flying into the ofrenda.
+  // Animate souls flying into the portal.
   for (let i = trail.length - 1; i >= 0; i--) {
     const tr = trail[i];
     if (!tr.flying) continue;
     tr.flying.t += dt / 0.9;
     const k = Math.min(1, tr.flying.t);
-    const to = new THREE.Vector3((Math.random() - 0.5) * 0.5, 3.5, o.z + 0.5);
+    const to = new THREE.Vector3((Math.random() - 0.5) * 0.5, 4.2, o.z + 0.5);
     const p = tr.flying.from.clone().lerp(to, k);
     p.y += Math.sin(k * Math.PI) * 2.5;
     tr.s.position.copy(p);
@@ -825,13 +848,15 @@ function toLowRes(cx, cy) {
   return { x: ((cx - viewport.x) / viewport.w) * LOW_W, y: ((cy - viewport.y) / viewport.h) * LOW_H };
 }
 const MUTE_BTN = { x: 304, y: 13, w: 14, h: 11 };
+const SKIP_BTN = { x: 288, y: 13, w: 14, h: 11 };
 const ZONE_BTNS = CONFIG.zones.map((_, i) => ({ x: 6 + i * 62, y: 150, w: 60, h: 14 }));
-const ZONE_LABELS = ['EMBARCADERO', 'CANAL', 'MUÑECAS', 'EL LAGO', 'OFRENDA'];
+const ZONE_LABELS = ['EMBARCADERO', 'CANAL', 'MUÑECAS', 'EL LAGO', 'MICTLÁN'];
 const inBox = (p, b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
 
 /** Handles a tap/click in low-res coordinates. Returns true if consumed. */
 function handlePoint(p) {
   if (inBox(p, MUTE_BTN)) { Sound.init(); Sound.toggleMute(); return true; }
+  if (state === 'play' && inBox(p, SKIP_BTN)) { skipToZone(G.zone + 1); return true; }
   if (state === 'title') {
     const zi = ZONE_BTNS.findIndex((b) => inBox(p, b));
     primaryAction(zi >= 0 ? zi : URL_ZONE);
@@ -937,7 +962,7 @@ function updatePlay(dt) {
   let target = THREE.MathUtils.lerp(CONFIG.speedStart, CONFIG.speedEnd, progress);
   if (G.slowT > 0) target *= CONFIG.lirioSlowFactor;
   if (G.finale) {
-    const oz = G.finale.ofrenda.z;
+    const oz = G.finale.gate.z;
     target = G.finale.stage === 'approach' ? Math.max(3, Math.min(CONFIG.speedStart, (-21 - oz) * 0.6 + 3)) : 0;
   }
   G.speed += (target - G.speed) * Math.min(1, dt * CONFIG.speedSmoothing);
@@ -1064,7 +1089,7 @@ function updateDecorSpawns(dt) {
       spawn('decor', 'llorona', side * rand(6, 10), CONFIG.spawnZ * rand(0.5, 0.9), { variant: 'ghost', baseY: rand(3.5, 6), vx: -side * rand(2, 4), fps: 1, llorona: true, scale: rand(1.2, 2) });
     }
   }
-  // Out on the open lake (and at the ofrenda) extra boats drift between the lanes and the banks.
+  // Out on the open lake (and at Mictlán) extra boats drift between the lanes and the banks.
   const open = G.bankX - CONFIG.laneWidth * 2.1;
   if (open > 1.2) {
     G.driftT = (G.driftT || 0) - dt;
@@ -1158,6 +1183,12 @@ function drawBunting2D(t) {
     }
   }
 }
+function drawSkipButton() {
+  const b = SKIP_BTN;
+  hud.fillStyle = PALETTE.V; hud.fillRect(b.x, b.y, b.w, b.h);
+  hud.fillStyle = PALETTE.O;
+  for (const ox of [3, 7]) for (let i = 0; i < 4; i++) hud.fillRect(b.x + ox + i, b.y + 2 + i, 1, 7 - 2 * i);
+}
 function drawMuteButton() {
   const b = MUTE_BTN;
   hud.fillStyle = PALETTE.V; hud.fillRect(b.x, b.y, b.w, b.h);
@@ -1173,7 +1204,7 @@ function drawHUD() {
   hud.clearRect(0, 0, LOW_W, LOW_H);
   if (state === 'title') { drawTitle(); drawMuteButton(); return; }
 
-  // Progress bar to the ofrenda.
+  // Progress bar to Mictlán.
   hud.fillStyle = PALETTE.V; hud.fillRect(0, 0, LOW_W, 2);
   hud.fillStyle = PALETTE.o; hud.fillRect(0, 0, Math.round(LOW_W * Math.min(1, G.runTime / totalDur)), 2);
   for (let i = 1; i < CONFIG.zones.length; i++) { hud.fillStyle = PALETTE.b; hud.fillRect(Math.round((zoneStart[i] / totalDur) * LOW_W), 0, 1, 2); }
@@ -1181,7 +1212,7 @@ function drawHUD() {
   // Souls (top-left).
   hud.drawImage(hudIcons.soul, 3, 5);
   text(String(trail.length + (G.finale ? G.delivered : 0)), 18, 9, 'T', 1, 'left', 'k');
-  if (G.finale) text('ENTREGADAS ' + G.delivered, 4, 33, 'O', 1, 'left', 'k');
+  if (G.finale) text('CRUZARON ' + G.delivered, 4, 33, 'O', 1, 'left', 'k');
 
   // Candle meter under the souls count.
   hud.drawImage(hudIcons.candle, 4, 19);
@@ -1208,6 +1239,7 @@ function drawHUD() {
   hud.drawImage(hudIcons.petal, LOW_W - 11, 4);
   text(String(G.petals), LOW_W - 14, 5, 'O', 1, 'right', 'k');
   drawMuteButton();
+  if (state === 'play') drawSkipButton();
 
   // Zone title card.
   if (G.titleCardT > 0 && state === 'play') {
@@ -1268,8 +1300,8 @@ function drawWin() {
     const w = Math.abs(Math.sin(p.spin)) > 0.5 ? 2 : 1;
     hud.fillRect(Math.round(p.x), Math.round(p.y), w, 3 - w);
   }
-  text('¡LLEGASTE A LA OFRENDA!', 160, 48, 'O', 2, 'center', 'm');
-  text(G.delivered > 0 ? `ALMAS ENTREGADAS: ${G.delivered}` : 'NINGUNA ALMA LLEGÓ ESTA NOCHE…', 160, 80, 'T', 1, 'center', 'k');
+  text('¡LLEGASTE AL MICTLÁN!', 160, 48, 'O', 2, 'center', 'm');
+  text(G.delivered > 0 ? `ALMAS QUE CRUZARON: ${G.delivered}` : 'NINGUNA ALMA CRUZÓ ESTA NOCHE…', 160, 80, 'T', 1, 'center', 'k');
   text(`PÉTALOS: ${G.petals}`, 160, 92, 'O', 1, 'center', 'k');
   text(`PUNTOS: ${G.delivered * 10 + G.petals}`, 160, 104, 'b', 1, 'center', 'k');
   if (G.endT > 1.2 && Math.floor(G.time * 2) % 2 === 0) text(IS_TOUCH ? 'TAP TO PLAY AGAIN' : 'SPACE / TAP TO PLAY AGAIN', 160, 134, 'y', 1, 'center', 'k');
@@ -1302,7 +1334,7 @@ function frame(now) {
   } else {
     G.time += dt;
     G.endT += dt;
-    const ambient = state === 'title' ? 5 : 2;
+    const ambient = state === 'title' ? 5 : state === 'win' ? 0 : 2; // the gate stays put on the win screen
     updateWorld(dt, ambient);
     for (const e of entities) e.z += ambient * dt;
     if (state === 'title') { G.paddleT += dt; if (G.paddleT > 0.5) { G.paddleT = 0; G.paddleFrame ^= 1; } updateDecorSpawns(dt); }
@@ -1336,4 +1368,4 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // Debug handle for tweaking CONFIG live from the console.
-window.XDM = { CONFIG, G, skipToZone, computeZoneTimes };
+window.XDM = { CONFIG, G, skipToZone, computeZoneTimes, spawnCandle };

@@ -1,5 +1,5 @@
 // sprites.js — every sprite in the game is a string grid with a 1-char palette key.
-// Small sprites are written by hand; large ones (boats, bridge, ofrenda) are composed
+// Small sprites are written by hand; large ones (boats, bridge, Mictlán gate) are composed
 // into the same kind of grid with tiny drawing helpers so they stay editable.
 
 // ---------------------------------------------------------------------------
@@ -708,58 +708,63 @@ function llorona() {
   return g;
 }
 
-function ofrenda() {
-  const W = 128, H = 80, g = new Grid(W, H), r = rng(77);
-  // Chinampa island.
-  for (let y = 66; y < H; y++) {
-    const inset = Math.floor((y - 66) * 0.8);
-    g.rect(4 + inset, y, W - 8 - 2 * inset, 1, 'd');
-    for (let x = 4 + inset; x < W - 4 - inset; x++) if (r() < 0.15) g.set(x, y, 'w');
+/** A waving calavera (skeleton) with marigolds in its raised hands. */
+function calaca(g, x, y) {
+  g.ellipse(x, y - 13, 2.5, 2.5, 'b');
+  g.set(x - 1, y - 13, 'k').set(x + 1, y - 13, 'k').set(x, y - 11, 'k');
+  g.rect(x, y - 10, 1, 6, 'b');
+  for (let i = 0; i < 3; i++) g.rect(x - 2, y - 9 + i * 2, 5, 1, 'b');
+  g.line(x - 2, y - 9, x - 5, y - 14, 'b').line(x + 2, y - 9, x + 5, y - 14, 'b');
+  g.set(x - 5, y - 15, 'o').set(x + 5, y - 15, 'o').set(x - 5, y - 16, 'O').set(x + 5, y - 16, 'O');
+  g.line(x, y - 4, x - 2, y, 'b').line(x, y - 4, x + 2, y, 'b');
+}
+
+/** The gates of Mictlán: a marigold arch around a glowing portal, between stepped pyramids. */
+function mictlan() {
+  const W = 128, H = 80, g = new Grid(W, H), r = rng(91), cx = 64;
+  // Floating island of dark stone, dripping light.
+  for (let y = 62; y < H; y++) {
+    const inset = Math.floor((y - 62) * 1.7);
+    g.rect(8 + inset, y, W - 16 - 2 * inset, 1, (y + inset) % 4 === 0 ? 'P' : 'V');
   }
-  g.rect(4, 62, W - 8, 4, 'g');
-  for (let x = 4; x < W - 4; x++) if (r() < 0.4) g.set(x, 62 + Math.floor(r() * 2), 'G');
-  const flower = (x, y) => { g.set(x, y, 'O').set(x - 1, y, 'o').set(x + 1, y, 'o').set(x, y - 1, 'o').set(x, y + 1, 'o'); };
-  for (let x = 6; x < W - 6; x += 3) flower(x, 63 + (x % 2));
-  // Flower arch.
-  for (let y = 0; y <= 62; y++) for (let x = 0; x < W; x++) {
-    const dx = (x - 64) / 58, dy = (y - 62) / 60;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    if (d <= 1 && d >= 0.9) g.set(x, y, r() < 0.15 ? 'm' : r() < 0.35 ? 'O' : 'o');
-  }
-  // Papel picado strung inside the arch.
-  const cols = ['m', 'T', 'y', 'p', 'G', 'o'];
-  for (let x = 26; x < 102; x++) g.set(x, 12 + Math.round(2 * Math.sin((Math.PI * (x - 26)) / 76)), 'b');
-  for (let i = 0, fx = 28; fx < 96; fx += 9, i++) papelPicadoFlag(g, fx, 13 + Math.round(2 * Math.sin((Math.PI * (fx - 23)) / 76)), 6, 8, cols[i % cols.length]);
-  // Three tiers.
-  const tiers = [
-    { x: 18, y: 54, w: 92, h: 9, c: 'm', e: 'p' },
-    { x: 30, y: 45, w: 68, h: 9, c: 'V', e: 'T' },
-    { x: 42, y: 36, w: 44, h: 9, c: 'o', e: 'y' },
-  ];
-  for (const t of tiers) {
-    g.rect(t.x, t.y, t.w, t.h, t.c);
-    for (let x = t.x; x < t.x + t.w; x++) if (x % 3 !== 0) g.set(x, t.y + 1, t.e);
-    g.rect(t.x, t.y + t.h - 1, t.w, 1, 'd');
-    // Candles and marigolds lining each tier.
-    for (let x = t.x + 2; x < t.x + t.w - 2; x += 5) {
-      g.rect(x, t.y - 3, 1, 3, 'b');
-      g.set(x, t.y - 4, 'y').set(x, t.y - 5, 'O');
-      flower(x + 2, t.y - 1);
+  g.rect(8, 60, W - 16, 2, 'V').rect(8, 60, W - 16, 1, 'T');
+  for (let x = 12; x < W - 12; x += 2) if (r() < 0.35) g.rect(x, 63 + Math.floor(r() * 6), 1, 1 + Math.floor(r() * 3), 'T');
+  // Stepped pyramids with skull racks (tzompantli) and a shrine on top.
+  for (const px of [20, 108]) {
+    for (let s = 0; s < 5; s++) {
+      const hw = 17 - s * 3, top = 60 - (s + 1) * 6;
+      g.rect(px - hw, top, hw * 2, 6, s % 2 ? 'W' : 'V').rect(px - hw, top, hw * 2, 1, 'T');
+      for (let x = px - hw + 2; x < px + hw - 2; x += 4) g.rect(x, top + 2, 2, 2, 'b').set(x, top + 3, 'k').set(x + 1, top + 3, 'k');
     }
+    g.rect(px - 4, 22, 8, 8, 'm').rect(px - 5, 21, 10, 2, 'o').rect(px - 1, 25, 2, 5, 'k');
+    g.set(px, 18, 'y').set(px, 19, 'O').set(px, 20, 'o');
   }
-  // Photo frame on the top tier.
-  g.rect(55, 18, 18, 16, 'd').rect(56, 19, 16, 14, 'w').rect(57, 20, 14, 12, 'b');
-  g.ellipse(64, 24, 2.5, 2.5, 'V');
-  g.rect(60, 28, 9, 4, 'V');
-  g.set(57, 20, 'O').set(70, 20, 'O');
-  // Sugar skulls on the middle tier.
-  for (const sx of [34, 88]) {
-    g.ellipse(sx, 49, 3, 2.5, 'b');
-    g.set(sx - 1, 49, 'k').set(sx + 1, 49, 'k').set(sx, 51, 'm').set(sx, 47, 'T');
+  // Portal: rings of cold light swirling inward.
+  const rings = ['t', 'T', 'b', 'T', 't', 'W', 't', 'T', 'b', 'y'];
+  rings.forEach((c, i) => g.ellipse(cx, 36, 25 - i * 2.4, 25 - i * 2.4, c));
+  for (let a = 0; a < 26; a += 0.18) {
+    const rr = 23 - a * 0.85;
+    if (rr > 1) g.set(cx + Math.cos(a) * rr, 36 + Math.sin(a) * rr, 'b');
   }
-  // Pan de muerto and fruit on the lowest tier.
-  for (const px of [24, 102]) { g.ellipse(px, 58, 3, 2, 'O'); g.set(px, 57, 'w').set(px - 1, 58, 'b').set(px + 1, 58, 'b'); }
-  for (const fx of [44, 52, 76, 84]) g.ellipse(fx, 58, 1.5, 1.5, fx % 8 === 4 ? 'o' : 'G');
+  // Marigold arch around the portal.
+  for (let y = 0; y <= 60; y++) for (let x = 0; x < W; x++) {
+    const dx = (x - cx) / 32, dy = (y - 60) / 58;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d <= 1 && d >= 0.86) g.set(x, y, r() < 0.15 ? 'm' : r() < 0.35 ? 'O' : 'o');
+  }
+  // Papel picado strung across the top of the arch.
+  const cols = ['m', 'T', 'y', 'p', 'G', 'o'];
+  for (let x = 40; x < 89; x++) g.set(x, 8 + Math.round(2 * Math.sin((Math.PI * (x - 40)) / 48)), 'b');
+  for (let i = 0, fx = 42; fx < 84; fx += 8, i++) papelPicadoFlag(g, fx, 9 + Math.round(2 * Math.sin((Math.PI * (fx - 38)) / 48)), 5, 7, cols[i % cols.length]);
+  // Stairway of light up into the portal, strewn with cempasúchil petals.
+  for (let s = 0; s < 8; s++) {
+    const y = 59 - s * 2, hw = 14 - s;
+    g.rect(cx - hw, y, hw * 2, 2, s % 2 ? 'T' : 'b');
+    for (let x = cx - hw + 1; x < cx + hw - 1; x += 3) if (r() < 0.6) g.set(x, y, 'o');
+  }
+  // Calaveras welcoming the souls.
+  calaca(g, 44, 59); calaca(g, 84, 59);
+  for (let i = 0; i < 18; i++) g.set(10 + r() * 108, 2 + r() * 20, r() < 0.5 ? 'y' : 'b');
   return g;
 }
 
@@ -802,7 +807,7 @@ const BASE = {
   sparkle: [SPARKLE_A, SPARKLE_B],
   llorona: [llorona()],
   doll: [DOLL],
-  ofrenda: [ofrenda()],
+  afterlife: [mictlan()],
 };
 
 // ---------------------------------------------------------------------------

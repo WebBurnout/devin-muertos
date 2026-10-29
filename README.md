@@ -1,6 +1,6 @@
 # Xochimilco de Muertos
 
-A pixel-art pseudo-3D lane runner set in Xochimilco on Día de Muertos. A xoloitzcuintle in a canoa gathers lost souls and brings them to the ofrenda before dawn.
+A pixel-art pseudo-3D lane runner set in Xochimilco on Día de Muertos. A xoloitzcuintle in a canoa gathers lost souls and guides them to Mictlán, the afterlife, before dawn.
 
 No build step: Three.js loads from a CDN through an import map. To run locally:
 

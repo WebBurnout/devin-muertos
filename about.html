@@ -40,8 +40,8 @@
 <main>
   <h1>XOCHIMILCO DE MUERTOS <small>Un xolo, una canoa y las almas perdidas</small></h1>
   <p class="lead">It's the night of Día de Muertos in Xochimilco, Mexico City. You're a xoloitzcuintle (the hairless dog who guides souls to the
-    land of the dead) paddling a canoa through the canals. Lost souls are drifting on the water. Gather as many as you can and bring them
-    to the ofrenda before dawn.</p>
+    land of the dead) paddling a canoa through the canals. Lost souls are drifting on the water. Gather as many as you can and guide them
+    to Mictlán, the afterlife, before dawn.</p>
   <a class="play" href="./">▶ PLAY</a>
   <a class="play" href="./?short">▶ PLAY SHORT DEMO</a>
 
@@ -59,9 +59,10 @@
   <ul>
     <li><b>Souls are your score.</b> Each soul you touch joins the glowing trail behind your canoa. Souls floating up high need a jump.</li>
     <li><b>Getting hit scatters half your trail.</b> The scattered souls fly off and land back in the lanes, so you can win them back. You're then invulnerable for 1.5 seconds and flicker.</li>
-    <li><b>Your candle is your light.</b> It burns down over about 45 seconds, and the fog closes in as it dims. Each candle you pick up refills half of it, and a candle shows up at least every 9 seconds.</li>
+    <li><b>Your candle is your light.</b> It burns down over about 45 seconds, and the fog closes in as it dims. Each candle you pick up refills half of it, and a candle shows up at least every 9 seconds. Candles glow straight through the fog, so you can always spot one, even in the dark.</li>
+    <li><b>There's always a way through.</b> No row of obstacles ever blocks all three lanes at once.</li>
     <li><b>Speed rises gently</b> over the run, and the sky moves from purple midnight toward an orange dawn.</li>
-    <li><b>The finale:</b> in the last zone the ofrenda rises out of the water. Your souls fly up to it one by one (<i>ENTREGADAS</i>) and you get the win screen.
+    <li><b>The finale:</b> in the last zone the gates of Mictlán rise out of the water. Your souls cross through the portal one by one (<i>CRUZARON</i>) and you get the win screen.
       Points = souls delivered × 10 + petals.</li>
   </ul>
 
@@ -72,13 +73,13 @@
   <div class="cards" id="obstacles"></div>
 
   <h2>The five zones</h2>
-  <p>The thin bar at the top of the screen shows how far you are from the ofrenda, and the box beside it shows the zone you're in (e.g. <code>ZONA 4/5 EL LAGO</code>).
+  <p>The thin bar at the top of the screen shows how far you are from Mictlán, and the box beside it shows the zone you're in (e.g. <code>ZONA 4/5 EL LAGO</code>).
     A full run takes about three minutes, or a little over one with <code>?short</code>.</p>
   <div class="zone"><b>1 · EMBARCADERO</b>: the trajinera dock at Nativitas. A short tutorial teaches steering, jumping, lirios, ducking and candles. Boats are parked along the banks, and the first Lloronas appear.</div>
-  <div class="zone"><b>2 · CANAL PRINCIPAL</b>: the busiest stretch. Rows of trajineras, mariachi boats (listen for the trumpet), vendor canoes cutting across, bridges, and papel picado to duck under.</div>
+  <div class="zone"><b>2 · CANAL PRINCIPAL</b>: the busiest stretch. Rows of trajineras, mariachi boats (listen for the trumpet), vendor canoes cutting across, and papel picado to duck under.</div>
   <div class="zone"><b>3 · ISLA DE LAS MUÑECAS</b>: Island of the Dolls. Dolls hang from the trees, the fog is thick, and you get more souls but less light. La Llorona comes at you in waves and floats overhead.</div>
   <div class="zone"><b>4 · EL LAGO</b>: the canal opens into a wide lake under a dawn-pink horizon. This is La Llorona's home, so expect many of her, sometimes in pairs or groups of three, plus drifting boats on the open water.</div>
-  <div class="zone"><b>5 · LA OFRENDA</b>: no obstacles. The marigold arch and ofrenda rise from the water, and you deliver your souls.</div>
+  <div class="zone"><b>5 · MICTLÁN</b>: the afterlife. There are no obstacles. The gates of Mictlán rise from the water: a marigold arch around a glowing portal, between stepped pyramids, with calaveras waving you in. Your souls cross over.</div>
 
   <h2>Demo mode &amp; shortcuts</h2>
   <ul>
@@ -100,10 +101,10 @@
   <a class="play" href="./">▶ PLAY</a>
 </main>
 <script type="module">
-  import { SPRITES, gridToCanvas } from './sprites.js';
+  import { SPRITES, gridToCanvas } from './sprites.js?v=3';
   const PICKUPS = [
     ['soul', 'Lost soul', 'good', 'Joins your trail. Low ones float on the water; high ones need a jump.'],
-    ['candle', 'Candle', 'good', 'Refills half of your light and pushes the fog back.'],
+    ['candle', 'Candle', 'good', 'Refills half of your light and pushes the fog back. It glows through the darkness, so you can always find one.'],
     ['petal', 'Cempasúchil petals', 'good', 'Bonus points. They come in lines of five.'],
     ['pan', 'Pan de muerto', 'good', 'Soul magnet for 5 seconds. It pulls in nearby souls, high ones included.'],
     ['ajolote', 'Ajolote', 'good', 'Shield. It absorbs the next hit before any souls scatter.'],
@@ -115,7 +116,6 @@
     ['llorona', 'La Llorona', 'bad', 'Her wail warns you 2 seconds before she glides diagonally across the lanes, sometimes two or three at once. The Lloronas on the banks and in the sky are harmless.'],
     ['lirio', 'Lirios (water hyacinth)', 'safe', 'They don\'t hurt you, but they slow you to about half speed for a second. Jump over them.'],
     ['banner', 'Papel picado', 'bad', 'Strung low across a lane. Duck under it.'],
-    ['bridge', 'Bridge', 'bad', 'Spans all three lanes. Duck to pass under it.'],
   ];
   const TAGS = { good: 'PICKUP', bad: 'AVOID', safe: 'SLOWS' };
   function fill(id, list) {
