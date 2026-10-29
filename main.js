@@ -16,13 +16,14 @@ const CONFIG = {
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
       patterns: { traj: 5, traj2: 4, mariachi: 1.5, vendor: 2, lirio: 1, banner: 1, bridge: 0.7 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 3, traj2: 1.5, lirio: 2, banner: 1, bridge: 0.6, empty: 0.8 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { traj: 3, traj2: 1.5, llorona: 1.5, lirio: 2, banner: 1, bridge: 0.6, empty: 0.8 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
-      patterns: { traj: 4, traj2: 2, llorona: 1.4, vendor: 1, lirio: 1, empty: 0.3 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
+      patterns: { traj: 4, traj2: 2, llorona: 3.5, llorona2: 1.5, vendor: 1, lirio: 1, empty: 0.3 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
     { name: 'LA OFRENDA', sub: 'LLÉVALAS A CASA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
   bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
+  bankLloronaEvery: [1.5, 3.5], // seconds between harmless Lloronas on the banks (zones 3-4)
   zoneTimeScale: 1,          // multiply all zone durations (?short=1 sets 0.4)
   titleCardTime: 2.8,
 
@@ -553,6 +554,14 @@ function spawnPetalLine(lane, z) {
 }
 function spawnCandle(lane, z) { G.sinceCandle = 0; return spawn('candle', 'candle', laneX(lane), z, { y: 0.15, hw: 0.45, hd: 0.6, fps: 6 }); }
 
+/** La Llorona glides across the canal; her wail warns you before she appears. */
+function spawnLlorona(side, delay) {
+  if (G.time - (G.lastWail || -9) > 1.5) { Sound.wail(); G.lastWail = G.time; }
+  G.events.push({ t: G.time + delay, fn: () => spawn('solid', 'llorona', side * CONFIG.laneWidth * 1.7, -75, {
+    variant: 'ghost', vx: -side * 1.15, vz: -2.5, y: 0.25, hd: 0.6, hw: 0.45, fps: 1, llorona: true, scale: 1.6,
+  }) });
+}
+
 function spawnTrajinera(lane, z, mariachi = false) {
   const name = mariachi ? 'mariachi' : pick(['traj0', 'traj1', 'traj2']);
   return spawn('solid', name, laneX(lane), z, { y: -0.12, vz: -1.2, hd: 1.0, hw: 1.33 * CONFIG.hitboxScale });
@@ -598,14 +607,8 @@ function spawnRow(kind) {
       for (const l of [0, 1, 2]) if (Math.random() < 0.5) spawnSoul(laneX(l), z - 6);
       break;
     }
-    case 'llorona': {
-      Sound.wail();
-      const side = Math.random() < 0.5 ? -1 : 1;
-      G.events.push({ t: G.time + 2, fn: () => spawn('solid', 'llorona', side * CONFIG.laneWidth * 1.7, -75, {
-        variant: 'ghost', vx: -side * 1.15, vz: -2.5, y: 0.25, hd: 0.6, hw: 0.45, fps: 1, llorona: true, scale: 1.1,
-      }) });
-      break;
-    }
+    case 'llorona': spawnLlorona(pick([-1, 1]), 2); break;
+    case 'llorona2': spawnLlorona(-1, 2); spawnLlorona(1, 3.2); break;
     // Tutorial-only patterns
     case 'tut-souls': free = []; spawnSoulLine(1, z, false); hint = 'souls'; break;
     case 'tut-lane': take(1); spawnTrajinera(1, z); spawnSoulLine(0, z - 2, false); hint = 'lane'; soulsOK = false; break;
@@ -1036,6 +1039,15 @@ function updateDecorSpawns(dt) {
     if (G.zone === 0 && Math.random() < 0.35) spawn('decor', 'dock', side * (G.bankX + 0.6), CONFIG.spawnZ, { y: -0.2 });
     else spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
   }
+  // Harmless Lloronas haunt the banks at the doll island and the lake.
+  if (state === 'play' && (G.zone === 2 || G.zone === 3) && !G.finale) {
+    G.ghostT = (G.ghostT || 0) - dt;
+    if (G.ghostT <= 0) {
+      G.ghostT = rand(CONFIG.bankLloronaEvery[0], CONFIG.bankLloronaEvery[1]);
+      const side = pick([-1, 1]);
+      spawn('decor', 'llorona', side * (G.bankX - rand(0.3, 1.2)), CONFIG.spawnZ, { variant: 'ghost', y: 0.25, fps: 1, llorona: true, scale: 1.6 });
+    }
+  }
   // Out on the open lake (and at the ofrenda) extra boats drift between the lanes and the banks.
   const open = G.bankX - CONFIG.laneWidth * 2.1;
   if (open > 1.2) {
@@ -1077,7 +1089,7 @@ function updateEntitySprites() {
   for (const e of entities) {
     e.s.position.set(e.x, e.y + (e.kind === 'soul' && !(e.flyT > 0) ? Math.sin(G.time * 3 + e.phase) * 0.08 : 0), e.z);
     if (e.frames > 1) setFrame(e.s, Math.floor(G.time * e.fps + e.phase) % e.frames);
-    if (e.llorona) e.s.material.opacity = 0.55 + Math.sin(G.time * 7) * 0.15;
+    if (e.llorona) e.s.material.opacity = 0.75 + Math.sin(G.time * 7) * 0.15;
   }
 }
 
@@ -1152,7 +1164,7 @@ function drawHUD() {
   // Souls (top-left).
   hud.drawImage(hudIcons.soul, 3, 5);
   text(String(trail.length + (G.finale ? G.delivered : 0)), 18, 9, 'T', 1, 'left', 'k');
-  if (G.finale) text('ENTREGADAS ' + G.delivered, 34, 9, 'O', 1, 'left', 'k');
+  if (G.finale) text('ENTREGADAS ' + G.delivered, 4, 33, 'O', 1, 'left', 'k');
 
   // Candle meter under the souls count.
   hud.drawImage(hudIcons.candle, 4, 19);
@@ -1165,6 +1177,14 @@ function drawHUD() {
   if (G.magnetT > 0) {
     hud.drawImage(hudIcons.pan, ix, 18);
     hud.fillStyle = PALETTE.O; hud.fillRect(ix, 31, Math.round(12 * (G.magnetT / CONFIG.magnetTime)), 1);
+  }
+
+  // Current level (top-center).
+  {
+    const label = `ZONA ${G.zone + 1}/${CONFIG.zones.length}  ${CONFIG.zones[G.zone].name}`;
+    const w = textWidth(label) + 8;
+    box(Math.round(160 - w / 2), 4, w, 11, 'P', 'o');
+    text(label, 160, 7, 'O', 1, 'center');
   }
 
   // Petals (top-right).
