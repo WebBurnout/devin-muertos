@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=5';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=7';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -12,19 +12,19 @@ const CONFIG = {
   // patterns = weighted obstacle patterns used by the random row spawner.
   zones: [
     { name: 'EMBARCADERO', sub: 'NATIVITAS, 1 DE NOVIEMBRE', dur: 30, rowEvery: 2.4,
-      patterns: { traj: 5, traj2: 2, llorona: 1.5, lirio: 1, picado: 0.8, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 2, lirio: 1, picado: 0.8, empty: 0.5 }, soulChance: 0.8, highSouls: 0.25, petalChance: 0.6, fogMul: 1, bankWiden: 0 },
     { name: 'CANAL PRINCIPAL', sub: 'CUIDADO CON LAS TRAJINERAS', dur: 45, rowEvery: 1.8,
-      patterns: { traj: 5, traj2: 4, llorona: 3, llorona2: 1, mariachi: 1.5, vendor: 2, lirio: 1, picado: 1 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
+      patterns: { traj: 5, traj2: 4, mariachi: 1.5, vendor: 2, lirio: 1, picado: 1 }, soulChance: 0.7, highSouls: 0.25, petalChance: 0.9, fogMul: 1, bankWiden: 0 },
     { name: 'ISLA DE LAS MUÑECAS', sub: 'LAS MUÑECAS TE OBSERVAN', dur: 35, rowEvery: 2.4,
-      patterns: { traj: 3, traj2: 1.5, llorona: 5, llorona2: 2.5, llorona3: 1, lirio: 2, picado: 1, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
+      patterns: { dolltree: 6, dolltree2: 3, traj: 1.5, lirio: 2, picado: 1, empty: 0.5 }, soulChance: 1, highSouls: 0.35, petalChance: 0.4, fogMul: 0.55, bankWiden: 0 },
     { name: 'EL LAGO', sub: '¿OYES ESE LLANTO?', dur: 40, rowEvery: 2.1,
-      patterns: { traj: 4, traj2: 2, llorona: 7, llorona2: 4, llorona3: 2, vendor: 1, lirio: 1, empty: 0.2 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
+      patterns: { traj: 4, traj2: 2, llorona: 7, llorona2: 5, vendor: 1, lirio: 1, empty: 0.2 }, soulChance: 0.8, highSouls: 0.3, petalChance: 0.6, fogMul: 1.1, bankWiden: 5 },
     { name: 'MICTLÁN', sub: 'EL MÁS ALLÁ TE ESPERA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
   bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
-  bankLloronaEvery: [0.7, 1.6], // seconds between harmless Lloronas on the banks (x2.5 in zone 1, x1.5 in zone 2)
-  skyLloronaEvery: [1.5, 3.5],  // seconds between Lloronas floating across the sky (zones 3-5)
+  bankLloronaEvery: [0.7, 1.6], // seconds between harmless Lloronas on the banks (El Lago only)
+  skyLloronaEvery: [1.5, 3.5],  // seconds between Lloronas floating across the sky (El Lago only)
   zoneTimeScale: 1,          // multiply all zone durations (?short=1 sets 0.4)
   titleCardTime: 2.8,
 
@@ -306,7 +306,7 @@ function recycleScenery(item) {
   setFrame(item.s, Math.floor(Math.random() * item.frameCount));
   if (item.name === 'ahuejote') {
     item.off = item.baseOff + Math.random() * 1.2;
-    item.doll.visible = (G.zone === 2 || (G.zone === 1 && G.zoneTime > G.zoneDur - 6)) && Math.random() < 0.75 && state === 'play';
+    item.doll.visible = false; // the dolls live on trees in the water now
   }
 }
 
@@ -564,27 +564,28 @@ function blockersNear(z, win = CONFIG.blockWindow) {
   let movers = 0;
   for (const e of entities) {
     if (e.dead || (e.kind !== 'solid' && e.kind !== 'duck') || Math.abs(e.z - z) > win) continue;
-    if (e.vx || e.llorona) movers++;
+    if (e.vx) movers++;
     else if (e.hw > 50) [0, 1, 2].forEach((l) => lanes.add(l));
     else lanes.add(laneOf(e.x));
   }
   return { lanes, movers };
 }
 
-/** La Llorona glides across the canal; her wail warns you before she appears. */
-function spawnLlorona(side, delay) {
+/** La Llorona stands in a lane and drifts at you like a trajinera; her wail announces her. */
+function spawnLlorona(lane, z) {
   if (G.time - (G.lastWail || -9) > 1.5) { Sound.wail(); G.lastWail = G.time; }
-  G.events.push({ t: G.time + delay, fn: () => {
-    if (blockersNear(-75).lanes.size > 1) return; // she'd close the last open lane
-    spawn('solid', 'llorona', side * CONFIG.laneWidth * 1.7, -75, {
-      variant: 'ghost', vx: -side * 1.15, vz: -2.5, y: 0.25, hd: 0.6, hw: 0.45, fps: 1, llorona: true, scale: 1.6,
-    });
-  } });
+  return spawn('solid', 'llorona', laneX(lane), z, {
+    variant: 'ghost', y: 0.25, vz: -1.2, hd: 0.8, hw: 0.6, fps: 1, llorona: true, scale: 1.6,
+  });
 }
 
 function spawnTrajinera(lane, z, mariachi = false) {
   const name = mariachi ? 'mariachi' : pick(['traj0', 'traj1', 'traj2']);
   return spawn('solid', name, laneX(lane), z, { y: -0.12, vz: -1.2, hd: 1.0, hw: 1.33 * CONFIG.hitboxScale });
+}
+
+function spawnDollTree(lane, z) {
+  return spawn('solid', pick(['dollTree', 'dollTreeB', 'dollTreeC']), laneX(lane) + rand(-0.15, 0.15), z, { y: -0.25, hd: 0.6, hw: 0.55, fps: 0 });
 }
 
 /** Spawns one row of obstacles plus souls / pickups in the free lanes. */
@@ -600,11 +601,13 @@ function spawnRow(kind) {
   const near = blockersNear(z);
   free = free.filter((l) => !near.lanes.has(l));
   const canBlock = (n) => near.lanes.size + n <= (near.movers ? 1 : 2);
-  if (['traj', 'mariachi', 'lirio'].includes(kind) && (!free.length || (kind !== 'lirio' && !canBlock(1)))) kind = 'empty';
+  if (['traj', 'dolltree', 'llorona', 'mariachi', 'lirio'].includes(kind) && (!free.length || (kind !== 'lirio' && !canBlock(1)))) kind = 'empty';
   // Papel picado spans the canal (you duck under it), so it only goes where nothing else is near.
   if (kind === 'picado' && (near.lanes.size || near.movers)) kind = 'empty';
   if (kind === 'traj2' && !canBlock(2)) kind = canBlock(1) && free.length ? 'traj' : 'empty';
-  if ((kind.startsWith('llorona') || kind === 'vendor') && near.lanes.size + near.movers > 1) kind = canBlock(1) && free.length ? 'traj' : 'empty';
+  if (kind === 'llorona2' && !canBlock(2)) kind = canBlock(1) && free.length ? 'llorona' : 'empty';
+  if (kind === 'dolltree2' && !canBlock(2)) kind = canBlock(1) && free.length ? 'dolltree' : 'empty';
+  if (kind === 'vendor' && near.lanes.size + near.movers > 1) kind = canBlock(1) && free.length ? 'traj' : 'empty';
 
   switch (kind) {
     case 'traj': { const l = take(pick(free)); spawnTrajinera(l, z); break; }
@@ -633,10 +636,21 @@ function spawnRow(kind) {
       if (Math.random() < 0.5) for (let i = 0; i < 3; i++) spawnSoul(laneX(l), z - 0.5 - i * 1.3, true);
       break;
     }
+    case 'dolltree': spawnDollTree(take(pick(free)), z); break;
+    case 'dolltree2': {
+      const a = take(pick(free)), b = take(pick(free));
+      spawnDollTree(a, z);
+      spawnDollTree(b, z - 2);
+      break;
+    }
     case 'picado': spawn('duck', 'picado', 0, z, { hw: 99, hd: 0.35 }); soulsOK = false; break;
-    case 'llorona': spawnLlorona(pick([-1, 1]), 2); break;
-    case 'llorona2': spawnLlorona(-1, 2); spawnLlorona(1, 3.2); break;
-    case 'llorona3': { const sd = pick([-1, 1]); spawnLlorona(sd, 1.5); spawnLlorona(-sd, 2.6); spawnLlorona(sd, 3.7); break; }
+    case 'llorona': spawnLlorona(take(pick(free)), z); break;
+    case 'llorona2': {
+      const a = take(pick(free)), b = take(pick(free));
+      spawnLlorona(a, z);
+      spawnLlorona(b, z - 3);
+      break;
+    }
     // Tutorial-only patterns
     case 'tut-souls': free = []; spawnSoulLine(1, z, false); hint = 'souls'; break;
     case 'tut-lane': take(1); spawnTrajinera(1, z); spawnSoulLine(0, z - 2, false); hint = 'lane'; soulsOK = false; break;
@@ -1061,6 +1075,15 @@ function updateDecorSpawns(dt) {
     const x = pick([-1, 1]) * rand(CONFIG.laneWidth * 1.6, Math.max(CONFIG.laneWidth * 1.7, G.bankX - 0.4));
     spawn('decor', 'floatFlower', x, CONFIG.spawnZ + rand(0, 20), { y: -0.05, fps: 2 });
   }
+  // Doll trees also stand in the shallows along the banks at the doll island.
+  if (state === 'play' && G.zone === 2) {
+    G.dollTreeT = (G.dollTreeT || 0) - dt;
+    if (G.dollTreeT <= 0) {
+      G.dollTreeT = rand(0.6, 1.3);
+      const x = pick([-1, 1]) * rand(CONFIG.laneWidth * 1.65, G.bankX + 0.3);
+      spawn('decor', pick(['dollTree', 'dollTreeB', 'dollTreeC']), x, CONFIG.spawnZ, { y: -0.25, fps: 0, scale: rand(0.9, 1.2) });
+    }
+  }
   G.buntingT -= dt;
   if (G.buntingT <= 0 && !G.finale) {
     G.buntingT = rand(8, 14);
@@ -1075,16 +1098,16 @@ function updateDecorSpawns(dt) {
     else spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
   }
   // Harmless Lloronas haunt the banks (more of them deeper into the night)...
-  if (state === 'play') {
+  if (state === 'play' && G.zone === 3) {
     G.ghostT = (G.ghostT || 0) - dt;
     if (G.ghostT <= 0) {
-      G.ghostT = rand(CONFIG.bankLloronaEvery[0], CONFIG.bankLloronaEvery[1]) * (G.zone === 0 ? 2.5 : G.zone === 1 ? 1.5 : 1);
+      G.ghostT = rand(CONFIG.bankLloronaEvery[0], CONFIG.bankLloronaEvery[1]);
       const side = pick([-1, 1]);
       spawn('decor', 'llorona', side * (G.bankX - rand(0.3, 1.2)), CONFIG.spawnZ, { variant: 'ghost', y: 0.25, fps: 1, llorona: true, scale: 1.6 });
     }
   }
   // ...and drift across the sky from the doll island onward.
-  if (state === 'play' && G.zone >= 2) {
+  if (state === 'play' && G.zone === 3) {
     G.skyGhostT = (G.skyGhostT || 2) - dt;
     if (G.skyGhostT <= 0) {
       G.skyGhostT = rand(CONFIG.skyLloronaEvery[0], CONFIG.skyLloronaEvery[1]);

@@ -33,6 +33,7 @@
     .tag.bad { color: var(--m); } .tag.good { color: var(--T); } .tag.safe { color: var(--O); }
     .zone { border-left: 4px solid var(--o); padding: 4px 0 4px 14px; margin: 14px 0; }
     .zone b { color: var(--O); }
+    .zone img { display: block; width: 100%; max-width: 480px; margin-top: 8px; border: 2px solid var(--o); image-rendering: pixelated; }
     ul { padding-left: 20px; }
   </style>
 </head>
@@ -75,11 +76,11 @@
   <h2>The five zones</h2>
   <p>The thin bar at the top of the screen shows how far you are from Mictlán, and the box beside it shows the zone you're in (e.g. <code>ZONA 4/5 EL LAGO</code>).
     A full run takes about three minutes, or a little over one with <code>?short</code>.</p>
-  <div class="zone"><b>1 · EMBARCADERO</b>: the trajinera dock at Nativitas. A short tutorial teaches steering, jumping, lirios, ducking and candles. Boats are parked along the banks, and the first Lloronas appear.</div>
-  <div class="zone"><b>2 · CANAL PRINCIPAL</b>: the busiest stretch. Rows of trajineras, mariachi boats (listen for the trumpet), vendor canoes cutting across, and papel picado to duck under.</div>
-  <div class="zone"><b>3 · ISLA DE LAS MUÑECAS</b>: Island of the Dolls. Dolls hang from the trees, the fog is thick, and you get more souls but less light. La Llorona comes at you in waves and floats overhead.</div>
-  <div class="zone"><b>4 · EL LAGO</b>: the canal opens into a wide lake under a dawn-pink horizon. This is La Llorona's home, so expect many of her, sometimes in pairs or groups of three, plus drifting boats on the open water.</div>
-  <div class="zone"><b>5 · MICTLÁN</b>: the afterlife. There are no obstacles. The gates of Mictlán rise from the water: a marigold arch around a glowing portal, between stepped pyramids, with calaveras waving you in. Your souls cross over.</div>
+  <div class="zone"><b>1 · EMBARCADERO</b>: the trajinera dock at Nativitas. A short tutorial teaches steering, jumping, lirios, ducking and candles. Boats are parked along the banks.<img src="./img/zone-1.png" alt="Embarcadero" loading="lazy"></div>
+  <div class="zone"><b>2 · CANAL PRINCIPAL</b>: the busiest stretch. Rows of trajineras, mariachi boats (listen for the trumpet), vendor canoes cutting across, and papel picado strung across the canal to duck under.<img src="./img/zone-2.png" alt="Canal Principal" loading="lazy"></div>
+  <div class="zone"><b>3 · ISLA DE LAS MUÑECAS</b>: Island of the Dolls. Gnarled trees grow right out of the water, hung with dolls; they stand in the lanes (steer around them) and in the shallows along the banks. The fog is thick, and you get more souls but less light.<img src="./img/zone-3.png" alt="Isla de las Muñecas" loading="lazy"></div>
+  <div class="zone"><b>4 · EL LAGO</b>: the canal opens into a wide lake under a dawn-pink horizon. This is La Llorona's home and the only place she appears: in the lanes like the boats (sometimes two at once), along the banks and floating across the sky, plus drifting boats on the open water.<img src="./img/zone-4.png" alt="El Lago" loading="lazy"></div>
+  <div class="zone"><b>5 · MICTLÁN</b>: the afterlife. There are no obstacles. The gates of Mictlán rise from the water: a marigold arch around a glowing portal, between stepped pyramids, with calaveras waving you in. Your souls cross over.<img src="./img/zone-5.png" alt="Mictlán" loading="lazy"></div>
 
   <h2>Demo mode &amp; shortcuts</h2>
   <ul>
@@ -94,14 +95,14 @@
   <ul>
     <li>Static site, frontend only. There's no build step, no backend and not a single image file. <a href="https://github.com/WebBurnout/devin-muertos">Source on GitHub</a>.</li>
     <li>3D with <a href="https://threejs.org">Three.js</a> (loaded from a CDN through an import map). The scene renders to a 640×360 target and is scaled up to the window with nearest-neighbor filtering and 16:9 letterboxing. The HUD is a 320×180 canvas drawn on top.</li>
-    <li>Every sprite is a grid of characters written in code (<code>sprites.js</code>) using a locked 16-color palette. Each one is doubled with the EPX pixel-art scaler, then given rim light, shadow and texture. La Llorona is drawn at full resolution by hand. All sprites are camera-facing billboards in a 3D canal.</li>
+    <li>Every sprite is a grid of characters written in code (<code>sprites.js</code>) using a locked 16-color palette. Each one is doubled with the EPX pixel-art scaler, then given rim light, shadow and texture. La Llorona, the calaverita souls, the cempasúchil and the pan de muerto are drawn at full resolution by hand. All sprites are camera-facing billboards in a 3D canal.</li>
     <li>All sound is synthesized live with the Web Audio API: paddle splashes, soul chimes, mariachi trumpet cues, La Llorona's wail and an ambient drone.</li>
     <li>Every tuning value (speed, zone length, spawn mix, hitbox size, candle drain, number of Lloronas…) lives in one <code>CONFIG</code> object at the top of <code>main.js</code>.</li>
   </ul>
   <a class="play" href="./">▶ PLAY</a>
 </main>
 <script type="module">
-  import { SPRITES, gridToCanvas } from './sprites.js?v=5';
+  import { SPRITES, gridToCanvas } from './sprites.js?v=7';
   const PICKUPS = [
     ['soul', 'Lost soul', 'good', 'Joins your trail. Low ones float on the water; high ones need a jump.'],
     ['candle', 'Candle', 'good', 'Refills half of your light and pushes the fog back. It glows through the darkness, so you can always find one.'],
@@ -113,7 +114,8 @@
     ['traj0', 'Trajinera', 'bad', 'Colorful party boats drifting in a lane. Change lanes to pass them. Sometimes they come in pairs, but one lane always stays clear.'],
     ['mariachi', 'Mariachi boat', 'bad', 'A trumpet fanfare plays about 2 seconds before it appears, so you know it\'s coming.'],
     ['vendorL', 'Vendor canoe', 'bad', 'Food sellers paddling sideways across the canal. Watch their path.'],
-    ['llorona', 'La Llorona', 'bad', 'Her wail warns you 2 seconds before she glides diagonally across the lanes, sometimes two or three at once. The Lloronas on the banks and in the sky are harmless.'],
+    ['dollTree', 'Doll tree', 'bad', 'Isla de las Muñecas only. A tree growing out of the water, hung with dolls. Steer around it.'],
+    ['llorona', 'La Llorona', 'bad', 'El Lago only. She stands in a lane and drifts toward you like a trajinera, sometimes two at once. Her wail announces her. The Lloronas on the banks and in the sky are harmless.'],
     ['lirio', 'Lirios (water hyacinth)', 'safe', 'They don\'t hurt you, but they slow you to about half speed for a second. Jump over them.'],
     ['picado', 'Papel picado', 'bad', 'Strung low across the whole canal, bank to bank. Duck under it.'],
   ];

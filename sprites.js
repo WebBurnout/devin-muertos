@@ -643,6 +643,48 @@ function dock() {
   return g.outline('k');
 }
 
+/** A small doll dangling on a string from (x, y). */
+function miniDoll(g, x, y, r) {
+  const len = 2 + Math.floor(r() * 4), t = y + len;
+  const dress = pickR(r, ['p', 'T', 'm', 'b']);
+  g.rect(x, y, 1, len, 'b');
+  g.rect(x - 1, t - 1, 3, 1, r() < 0.5 ? 'O' : 'd');
+  g.rect(x - 1, t, 3, 3, 'b');
+  g.set(x - 1, t + 1, 'k');
+  if (r() < 0.6) g.set(x + 1, t + 1, 'k');
+  g.rect(x - 2, t + 3, 5, 4, dress).set(x, t + 4, 'b');
+  g.set(x - 1, t + 7, 'b').set(x + 1, t + 7, 'b');
+  if (r() < 0.5) g.set(x - 3, t + 4, 'b');
+  if (r() < 0.5) g.set(x + 3, t + 4, 'b');
+}
+const pickR = (r, a) => a[Math.floor(r() * a.length)];
+
+/** A gnarled tree growing out of the canal, hung with dolls (Isla de las Muñecas). */
+function dollTree(seed) {
+  const W = 40, H = 72, g = new Grid(W, H), r = rng(seed), cx = 20;
+  for (let i = 0; i < 6; i++) g.line(cx, 62, cx + (i - 2.5) * 5 + r() * 2, 70 + r() * 2, 'd');
+  let x = cx;
+  for (let y = 66; y > 20; y--) {
+    if (r() < 0.25) x = Math.max(cx - 3, Math.min(cx + 3, x + (r() < 0.5 ? -1 : 1)));
+    const hw = y > 56 ? 3 : 2;
+    g.rect(x - hw, y, hw * 2 + 1, 1, 'd').set(x - hw, y, 'w');
+    if (r() < 0.15) g.set(x, y, 'k');
+  }
+  const tips = [];
+  for (let i = 0; i < 7; i++) {
+    const by = 22 + Math.floor(r() * 24), dir = i % 2 ? 1 : -1, len = 8 + r() * 9;
+    const ex = cx + dir * len, ey = by - 4 - r() * 8;
+    g.line(cx, by, ex, ey, 'd');
+    tips.push([ex, ey]);
+  }
+  for (let k = 0; k < 40; k++) g.set(cx + (r() - 0.5) * 16, 8 + r() * 14, r() < 0.4 ? 'G' : 'g');
+  for (const [tx, ty] of tips) for (let k = 0; k < 8; k++) g.set(tx + (r() - 0.5) * 7, ty + (r() - 0.5) * 4, r() < 0.4 ? 'G' : 'g');
+  for (const [tx, ty] of tips.slice(0, 6)) miniDoll(g, Math.round(tx), Math.round(ty) + 1, r);
+  miniDoll(g, cx - 1, 42, r);
+  miniDoll(g, cx + 2, 50, r);
+  return g;
+}
+
 const DOLL = Grid.from([
   '....b.....',
   '....b.....',
@@ -786,6 +828,9 @@ const BASE = {
   sparkle: [SPARKLE_A, SPARKLE_B],
   llorona: [llorona()],
   doll: [DOLL],
+  dollTree: [dollTree(5)],
+  dollTreeB: [dollTree(17)],
+  dollTreeC: [dollTree(29)],
   afterlife: [mictlan()],
 };
 
@@ -889,7 +934,89 @@ function lloronaHD() {
   return g;
 }
 
+// ---------------------------------------------------------------------------
+// Hand-drawn hi-res pickups
+// ---------------------------------------------------------------------------
+/** Lost soul: a glowing sugar-skull calaverita with a spirit-flame tail. */
+function soulHD(frame) {
+  const W = 28, H = 32, g = new Grid(W, H), cx = 13.5, sway = frame ? 1 : -1;
+  // Spirit flame trailing below the skull.
+  for (let y = 21; y < H; y++) {
+    const t = (y - 21) / (H - 21), hw = 6 * (1 - t) + 0.5, off = Math.round(Math.sin(t * 5) * 1.5 * sway);
+    g.rect(Math.round(cx - hw + off), y, Math.round(hw * 2), 1, t > 0.55 ? 't' : 'T');
+  }
+  g.set(cx - 4 + sway, H - 4, 'T').set(cx + 5 + sway, H - 6, 't');
+  // Aura.
+  g.ellipse(cx, 12, 13, 12, 't');
+  g.ellipse(cx, 12, 11.8, 10.8, 'T');
+  // Cranium and jaw.
+  g.ellipse(cx, 10.5, 10, 8.5, 'b');
+  g.ellipse(cx, 16, 7.5, 5, 'b');
+  g.rect(7, 13, 14, 5, 'b');
+  // Eye sockets with petal rims and glints.
+  for (const ex of [9, 18]) {
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 5) g.set(ex + Math.cos(a) * 4, 11 + Math.sin(a) * 4, 'm');
+    g.ellipse(ex, 11, 3.1, 3, 'k');
+    g.set(ex - 1, 10, 'T').set(ex - 1, 9, 'T').set(ex, 10, 'T');
+  }
+  // Upside-down heart nose.
+  g.rect(12, 15, 4, 1, 'k').rect(13, 16, 2, 1, 'k').set(12, 14, 'k').set(15, 14, 'k');
+  // Stitched grin with teeth.
+  g.rect(8, 19, 12, 1, 'k');
+  for (let x = 8; x <= 19; x += 2) g.set(x, 18, 'k').set(x, 20, 'k');
+  // Cempasúchil on the forehead, with dots and cheek swirls.
+  g.ellipse(cx, 4.5, 2.6, 2, 'o');
+  g.set(cx - 2, 3, 'O').set(cx + 2, 3, 'O').set(cx - 2, 6, 'O').set(cx + 2, 6, 'O').set(cx, 4.5, 'y');
+  for (const [x, y] of [[7, 5], [20, 5], [5, 9], [22, 9]]) g.set(x, y, 'T');
+  g.set(5, 15, 'p').set(6, 16, 'p').set(5, 17, 'p').set(22, 15, 'p').set(21, 16, 'p').set(22, 17, 'p');
+  return g;
+}
+
+/** Cempasúchil (marigold): layered ruffled petals on a sprig of leaves. */
+function marigoldHD() {
+  const W = 20, H = 20, g = new Grid(W, H), cx = 9.5, cy = 8.5;
+  g.line(cx, 14, cx, 19, 'g');
+  g.ellipse(cx - 4, 17, 3, 1.4, 'g').ellipse(cx + 4, 16, 3, 1.4, 'G');
+  // Three tiers of scalloped petals, darker toward the outside.
+  for (const [rad, n, c, edge] of [[8.4, 10, 'o', 'w'], [6, 8, 'O', 'o'], [3.6, 6, 'y', 'O']]) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy), ang = Math.atan2(dy, dx);
+      const lim = rad - 1.1 * Math.abs(Math.sin((ang * n) / 2));
+      if (d <= lim) g.set(x, y, d > lim - 1 && rad > 4 ? edge : c);
+    }
+  }
+  g.rect(cx - 1, cy - 1, 2, 2, 'O').set(cx, cy - 1, 'y');
+  return g;
+}
+
+/** Pan de muerto: a sugared golden dome crossed with huesitos and topped with a dough ball. */
+function panHD() {
+  const W = 28, H = 26, g = new Grid(W, H), cx = 13.5, r = rng(11);
+  g.ellipse(cx, 16, 12.5, 8.5, 'd');
+  g.ellipse(cx, 15.5, 11.5, 7.5, 'w');
+  g.ellipse(cx - 1, 14, 9.5, 5.5, 'o');
+  g.ellipse(cx - 3, 12.5, 5, 2.5, 'O');
+  // Huesitos: two knobbly dough bones in a cross, darker so they read on the dome.
+  for (const [x0, y0, x1, y1] of [[5, 10, 22, 19], [5, 19, 22, 10]]) {
+    g.line(x0, y0, x1, y1, 'd').line(x0, y0 - 1, x1, y1 - 1, 'w');
+    for (const [kx, ky] of [[x0, y0], [x1, y1]]) { g.ellipse(kx, ky - 0.5, 1.7, 1.5, 'd'); g.set(kx - 0.5, ky - 1, 'w'); }
+  }
+  // Dough ball on top.
+  g.ellipse(cx, 7.5, 3.2, 2.8, 'd');
+  g.ellipse(cx - 0.5, 7, 2.2, 1.8, 'w');
+  g.set(cx - 1, 6, 'o');
+  // Sugar sprinkled over the top.
+  for (let i = 0; i < 26; i++) {
+    const x = cx + (r() - 0.5) * 20, y = 9 + r() * 9;
+    if (((x - cx) / 10.5) ** 2 + ((y - 15) / 6.5) ** 2 < 1) g.set(x, y, 'b');
+  }
+  return g;
+}
+
 /** Low-res originals, used for the 320x180 HUD icons. */
 export const ICONS = BASE;
 export const SPRITES = Object.fromEntries(Object.entries(BASE).map(([k, frames]) => [k, frames.map(hires)]));
 SPRITES.llorona = [lloronaHD()];
+SPRITES.soul = [soulHD(0), soulHD(1)];
+SPRITES.petal = [marigoldHD()];
+SPRITES.pan = [panHD()];
