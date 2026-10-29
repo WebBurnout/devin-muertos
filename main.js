@@ -2,7 +2,7 @@
 // Three.js renders into a 320x180 target that is upscaled with nearest-neighbor
 // filtering. Every object in the world is a camera-facing pixel-art sprite.
 import * as THREE from 'three';
-import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=7';
+import { PALETTE, SPRITES, ICONS, gridToCanvas, textWidth, forEachTextPixel } from './sprites.js?v=8';
 
 // ===========================================================================
 // CONFIG — every tuning value lives here so it can be tweaked during a demo.
@@ -22,7 +22,7 @@ const CONFIG = {
     { name: 'MICTLÁN', sub: 'EL MÁS ALLÁ TE ESPERA', dur: 30, rowEvery: 0,
       patterns: {}, soulChance: 0, highSouls: 0, petalChance: 0, fogMul: 2, bankWiden: 5 },
   ],
-  bankBoatEvery: [0.8, 1.8], // seconds between parked boats on the banks
+  bankBoatEvery: [0.8, 1.8], // seconds between docks (Embarcadero) / moored boats at the lake edge (El Lago)
   bankLloronaEvery: [0.7, 1.6], // seconds between harmless Lloronas on the banks (El Lago only)
   skyLloronaEvery: [1.5, 3.5],  // seconds between Lloronas floating across the sky (El Lago only)
   zoneTimeScale: 1,          // multiply all zone durations (?short=1 sets 0.4)
@@ -1089,13 +1089,13 @@ function updateDecorSpawns(dt) {
     G.buntingT = rand(8, 14);
     spawn('decor', 'bunting', 0, CONFIG.spawnZ, { y: 3.4 });
   }
-  // Parked trajineras line the banks in every zone (docks only at the embarcadero).
+  // Docks at the embarcadero; on El Lago, moored boats float in the water along the far edges.
   G.decorT -= dt;
   if (G.decorT <= 0) {
     G.decorT = rand(CONFIG.bankBoatEvery[0], CONFIG.bankBoatEvery[1]);
     const side = pick([-1, 1]);
     if (G.zone === 0 && Math.random() < 0.35) spawn('decor', 'dock', side * (G.bankX + 0.6), CONFIG.spawnZ, { y: -0.2 });
-    else spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX + 0.3), CONFIG.spawnZ, { y: -0.12 });
+    else if (G.zone === 3 && G.bankX > 6.5) spawn('decor', pick(['traj0', 'traj1', 'traj2', 'mariachi']), side * (G.bankX - 1.4), CONFIG.spawnZ, { y: -0.12 });
   }
   // Harmless Lloronas haunt the banks (more of them deeper into the night)...
   if (state === 'play' && G.zone === 3) {
